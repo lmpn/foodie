@@ -13,7 +13,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::ports::incoming::update_recipe_service::UploadImagesServiceError;
+use super::ports::incoming::update_recipe_service::UpdateRecipeService;
+use super::ports::incoming::update_recipe_service::UpdateRecipeServiceError;
+
 
 pub struct UploadImages<Storage>
 where
@@ -28,7 +30,7 @@ impl<Storage> UploadImagesService for UploadImages<Storage>
 where
     Storage: InsertImagePort + Sync + Send,
 {
-    async fn upload_image(&self, buffer: Vec<u8>) -> Result<(), UploadImagesServiceError> {
+    async fn upload_image(&self, buffer: Vec<u8>) -> Result<(), UpdateRecipeServiceError> {
         let format = match image::io::Reader::new(Cursor::new(buffer)).with_guessed_format() {
             Ok(format) => format,
             Err(_) => return Err(UploadImagesServiceError::UnsupportedFormatError),

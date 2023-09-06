@@ -2,9 +2,11 @@ use std::{error::Error, fmt::Display};
 
 use async_trait::async_trait;
 
+use crate::services::recipes::domain::recipe::Recipe;
+
 #[async_trait]
 pub trait UpdateRecipeService {
-    async fn update_recipe(&self, buffer: Vec<u8>) -> Result<(), UpdateRecipeServiceError>;
+    async fn update_recipe(&self, recipe: Recipe) -> Result<(), UpdateRecipeServiceError>;
 }
 
 #[derive(Debug, PartialEq)]

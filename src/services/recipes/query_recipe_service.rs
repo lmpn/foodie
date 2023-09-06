@@ -1,104 +1,45 @@
 use super::{
-    domain::image::Image,
+    domain::recipe::Recipe,
     ports::{
-        incoming::query_recipe_service::{QueryImageService, QueryImageServiceError},
-        outgoing::query_recipe_port::{QueryError, QueryImagePort},
+        incoming::query_recipe_service::{QueryRecipeService, QueryRecipeServiceError},
+        outgoing::query_recipe_port::{QueryRecipeError, QueryRecipePort},
     },
 };
 use async_trait::async_trait;
-impl From<QueryError> for QueryImageServiceError {
-    fn from(value: QueryError) -> Self {
+impl From<QueryRecipeError> for QueryRecipeServiceError {
+    fn from(value: QueryRecipeError) -> Self {
         match value {
-            QueryError::RecordNotFound => QueryImageServiceError::ImageNotFound,
-            QueryError::InternalError => QueryImageServiceError::InternalError,
+            QueryRecipeError::RecordNotFound => QueryRecipeServiceError::RecipeNotFound,
+            QueryRecipeError::InternalError => QueryRecipeServiceError::InternalError,
         }
     }
 }
 
-pub struct QueryImage<Storage>
+pub struct QueryRecipe<Storage>
 where
-    Storage: QueryImagePort + Send + Sync,
+    Storage: QueryRecipePort + Send + Sync,
 {
     storage: Storage,
 }
 
 #[async_trait]
-impl<Storage> QueryImageService for QueryImage<Storage>
+impl<Storage> QueryRecipeService for QueryRecipe<Storage>
 where
-    Storage: QueryImagePort + Send + Sync,
+    Storage: QueryRecipePort + Send + Sync,
 {
-    async fn query_image(&self, index: i64) -> Result<Image, QueryImageServiceError> {
+    async fn query_recipe(&self, index: i64) -> Result<Recipe, QueryRecipeServiceError> {
         self.storage
-            .query_image(index)
+            .query_recipe(index)
             .await
             .map_err(|err| err.into())
     }
 }
 
-impl<Storage> QueryImage<Storage>
+impl<Storage> QueryRecipe<Storage>
 where
-    Storage: QueryImagePort + Send + Sync,
+    Storage: QueryRecipePort + Send + Sync,
 {
     pub fn new(storage: Storage) -> Self {
         Self { storage }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use async_trait::async_trait;
-    use chrono::Utc;
-    use mockall::mock;
-
-    use crate::services::images::{
-        domain::image::Image,
-        ports::{
-            incoming::query_image_service::{QueryImageService, QueryImageServiceError},
-            outgoing::query_image_port::{QueryError, QueryImagePort},
-        },
-        query_image_service::QueryImage,
-    };
-
-    mock! {
-        DS {}
-        #[async_trait]
-        impl QueryImagePort for DS {
-            async fn query_image(&self, index: i64) -> Result<Image, QueryError>;
-        }
-    }
-
-    #[tokio::test]
-    async fn test_query_image() {
-        let mut mock = MockDS::new();
-        let image = Image::new(1, "some/path".to_string(), Utc::now());
-        let image_clone = image.clone();
-        mock.expect_query_image()
-            .returning(move |_i| Ok(image.clone()));
-        let suu = QueryImage::new(mock);
-        let result = suu.query_image(1).await;
-        assert!(result.is_ok());
-        assert_eq!(image_clone, result.unwrap())
-    }
-
-    #[tokio::test]
-    async fn test_query_image_ds_error() {
-        let mut mock = MockDS::new();
-        mock.expect_query_image()
-            .returning(move |_i| Err(QueryError::InternalError));
-        let suu = QueryImage::new(mock);
-        let result = suu.query_image(1).await;
-        assert!(result.is_err());
-        assert_eq!(result, Err(QueryImageServiceError::InternalError));
-    }
-
-    #[tokio::test]
-    async fn test_query_image_not_found() {
-        let mut mock = MockDS::new();
-        mock.expect_query_image()
-            .returning(move |_i| Err(QueryError::RecordNotFound));
-        let suu = QueryImage::new(mock);
-        let result = suu.query_image(1).await;
-        assert!(result.is_err());
-        assert_eq!(result, Err(QueryImageServiceError::ImageNotFound));
     }
 }

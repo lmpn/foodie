@@ -44,6 +44,7 @@ impl From<sqlx::Error> for InsertRecipeError {
     }
 }
 
+#[derive(Clone)]
 pub struct RecipeSqliteDS {
     pool: SqlitePool,
 }
