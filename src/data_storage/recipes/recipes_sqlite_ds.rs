@@ -72,7 +72,7 @@ impl DeleteRecipePort for RecipeSqliteDS {
 
 #[async_trait]
 impl InsertRecipePort for RecipeSqliteDS {
-    async fn insert_recipe(&self, record: &Recipe) -> Result<(), InsertRecipeError> {
+    async fn insert_recipe(&self, record: Recipe) -> Result<(), InsertRecipeError> {
         Err(InsertRecipeError::InternalError)
     }
 }

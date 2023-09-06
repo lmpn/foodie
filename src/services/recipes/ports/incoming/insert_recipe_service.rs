@@ -6,7 +6,7 @@ use crate::services::recipes::domain::recipe::Recipe;
 
 #[async_trait]
 pub trait InsertRecipeService {
-    async fn insert_recipe(&self, id: i64) -> Result<Recipe, InsertRecipeServiceError>;
+    async fn insert_recipe(&self, recipe: Recipe) -> Result<(), InsertRecipeServiceError>;
 }
 
 #[derive(Debug, PartialEq)]
