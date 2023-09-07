@@ -22,6 +22,9 @@ where
     Storage: InsertRecipePort + Sync + Send,
 {
     async fn insert_recipe(&self, recipe: Recipe) -> Result<(), InsertRecipeServiceError> {
+        if recipe.ingredients().is_empty() {
+            return Err(InsertRecipeServiceError::NoIngredients);
+        }
         match self.storage.insert_recipe(recipe).await {
             Ok(()) => Ok(()),
             Err(InsertRecipeError::InternalError) => Err(InsertRecipeServiceError::InternalError),

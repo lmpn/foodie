@@ -65,13 +65,25 @@ pub async fn insert_recipe_handler(
                 .body(body::boxed(BoxBody::default()));
             builder.map_err(|e| e.into())
         }
+        Err(InsertRecipeServiceError::NoIngredients) => {
+            let builder = Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(axum::http::header::CONTENT_TYPE, "application/json")
+                .body(body::boxed(
+                    Json(json!({
+                        "error": format!("{:?}", InsertRecipeServiceError::NoIngredients),
+                    }))
+                    .to_string(),
+                ));
+            builder.map_err(|e| e.into())
+        }
         Err(InsertRecipeServiceError::InternalError) => {
             let builder = Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .header(axum::http::header::CONTENT_TYPE, "application/json")
                 .body(body::boxed(
                     Json(json!({
-                        "error": "internal server error",
+                        "error": format!("{:?}", InsertRecipeServiceError::InternalError),
                     }))
                     .to_string(),
                 ));
