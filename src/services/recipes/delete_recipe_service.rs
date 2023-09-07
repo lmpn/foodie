@@ -1,9 +1,8 @@
 use async_trait::async_trait;
-use tracing::error;
 
 use super::ports::{
     incoming::delete_recipe_service::{DeleteRecipeService, DeleteRecipeServiceError},
-    outgoing::delete_recipe_port::DeleteRecipePort,
+    outgoing::delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
 };
 
 pub struct DeleteRecipe<Storage>
@@ -18,16 +17,12 @@ impl<Storage> DeleteRecipeService for DeleteRecipe<Storage>
 where
     Storage: DeleteRecipePort + Send + Sync,
 {
-    async fn delete_recipe(&self, index: i64) -> Result<(), DeleteRecipeServiceError> {
-        let path = match self.storage.delete_recipe(index).await {
-            Ok(path) => path,
-            Err(_) => return Err(DeleteRecipeServiceError::RecipeNotFound),
-        };
-        if std::fs::remove_file(&path).is_err() {
-            error!("Error removing file {}", path);
-            return Err(DeleteRecipeServiceError::InternalError);
+    async fn delete_recipe(&self, uuid: uuid::Uuid) -> Result<(), DeleteRecipeServiceError> {
+        match self.storage.delete_recipe(uuid).await {
+            Err(DeleteRecipeError::RecordNotFound) => Err(DeleteRecipeServiceError::RecipeNotFound),
+            Err(DeleteRecipeError::InternalError) => Err(DeleteRecipeServiceError::InternalError),
+            _ => Ok(()),
         }
-        Ok(())
     }
 }
 

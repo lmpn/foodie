@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use futures::TryFutureExt;
 use sqlx::{Execute, QueryBuilder, Sqlite, SqlitePool};
 use tracing::info;
+use uuid::Uuid;
 
 use crate::services::recipes::{
     domain::{ingredient, recipe::Recipe},
@@ -68,8 +69,14 @@ impl QueryRecipePort for RecipeSqliteDS {
 
 #[async_trait]
 impl DeleteRecipePort for RecipeSqliteDS {
-    async fn delete_recipe(&self, index: i64) -> Result<String, DeleteRecipeError> {
-        Err(DeleteRecipeError::InternalError)
+    async fn delete_recipe(&self, uuid: Uuid) -> Result<(), DeleteRecipeError> {
+        let mut builder = QueryBuilder::new("SELECT * FROM recipe WHERE uuid = ");
+        let query = builder.push_bind(uuid.to_string()).build();
+        query
+            .execute(&self.pool)
+            .await
+            .map(|_v| ())
+            .map_err(|e| e.into())
     }
 }
 
@@ -88,7 +95,6 @@ impl InsertRecipePort for RecipeSqliteDS {
             .push_bind(record.method())
             .push(") ")
             .build();
-
         let mut builder = QueryBuilder::new("INSERT INTO ingredient (uuid, name, amount, unit) ");
         let ingredient_insert_query = builder
             .push_values(record.ingredients().iter(), |mut q, item| {

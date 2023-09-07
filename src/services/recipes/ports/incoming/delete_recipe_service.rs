@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait DeleteRecipeService {
-    async fn delete_recipe(&self, index: i64) -> Result<(), DeleteRecipeServiceError>;
+    async fn delete_recipe(&self, uuid: uuid::Uuid) -> Result<(), DeleteRecipeServiceError>;
 }
 
 #[derive(Debug, PartialEq)]

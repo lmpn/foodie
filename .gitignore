@@ -1,5 +1,4 @@
 /target
-/bin
 
 /sql/*.db
 sql/*.db-shm

@@ -1,0 +1,7 @@
+{
+    "files.exclude": {
+        "src/services/recipes/ports": true,
+        "sql": true,
+        "target": true
+    }
+}
