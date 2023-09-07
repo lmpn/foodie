@@ -17,12 +17,12 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize)]
 pub struct RecipeJson {
-    id: i64,
+    id: uuid::Uuid,
 }
 
 impl From<Recipe> for RecipeJson {
     fn from(value: Recipe) -> Self {
-        Self { id: value.id() }
+        Self { id: value.uuid() }
     }
 }
 

@@ -7,6 +7,8 @@ use crate::services::recipes::{
 };
 use async_trait::async_trait;
 
+use super::ports::outgoing::insert_recipe_port::InsertRecipeError;
+
 pub struct InsertRecipe<Storage>
 where
     Storage: InsertRecipePort + Sync + Send,
@@ -19,8 +21,11 @@ impl<Storage> InsertRecipeService for InsertRecipe<Storage>
 where
     Storage: InsertRecipePort + Sync + Send,
 {
-    async fn insert_recipe(&self, _recipe: Recipe) -> Result<(), InsertRecipeServiceError> {
-        Ok(())
+    async fn insert_recipe(&self, recipe: Recipe) -> Result<(), InsertRecipeServiceError> {
+        match self.storage.insert_recipe(recipe).await {
+            Ok(()) => Ok(()),
+            Err(InsertRecipeError::InternalError) => Err(InsertRecipeServiceError::InternalError),
+        }
     }
 }
 

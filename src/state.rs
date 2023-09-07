@@ -7,7 +7,6 @@ use crate::configuration::Configuration;
 #[derive(Clone)]
 pub struct State {
     pool: SqlitePool,
-    images_base_path: String,
 }
 
 impl State {
@@ -36,17 +35,10 @@ impl State {
         });
 
         let pool = pool.unwrap();
-        Self {
-            pool,
-            images_base_path: configuration.images_base_path().to_string(),
-        }
+        Self { pool }
     }
 
     pub fn pool(&self) -> SqlitePool {
         self.pool.clone()
-    }
-
-    pub fn images_base_path(&self) -> &str {
-        self.images_base_path.as_ref()
     }
 }

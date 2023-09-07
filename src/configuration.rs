@@ -80,12 +80,6 @@ impl Configuration {
             }
         }
     }
-
-    pub(crate) fn images_base_path(&self) -> &str {
-        self.configuration
-            .get_from(Some("IMAGE_SERVICE"), "base_path")
-            .expect("Invalid base path")
-    }
 }
 
 impl Default for Configuration {

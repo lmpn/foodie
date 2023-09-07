@@ -1,23 +1,23 @@
 #[derive(Debug, Clone)]
 pub struct Ingredient {
-    id: i64,
+    uuid: uuid::Uuid,
     name: String,
     amount: f64,
     unit: String,
 }
 
 impl Ingredient {
-    pub fn new(id: i64, name: String, amount: f64, unit: String) -> Self {
+    pub fn new(id: uuid::Uuid, name: String, amount: f64, unit: String) -> Self {
         Self {
-            id,
+            uuid: id,
             name,
             amount,
             unit,
         }
     }
 
-    pub fn id(&self) -> i64 {
-        self.id
+    pub fn uuid(&self) -> uuid::Uuid {
+        self.uuid
     }
 
     pub fn name(&self) -> &str {

@@ -27,9 +27,9 @@ impl<Storage> QueryRecipeService for QueryRecipe<Storage>
 where
     Storage: QueryRecipePort + Send + Sync,
 {
-    async fn query_recipe(&self, index: i64) -> Result<Recipe, QueryRecipeServiceError> {
+    async fn query_recipe(&self, uuid: uuid::Uuid) -> Result<Recipe, QueryRecipeServiceError> {
         self.storage
-            .query_recipe(index)
+            .query_recipe(uuid)
             .await
             .map_err(|err| err.into())
     }

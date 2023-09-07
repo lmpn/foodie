@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 #[async_trait]
 pub trait QueryRecipePort {
-    async fn query_recipe(&self, index: i64) -> Result<Recipe, QueryRecipeError>;
+    async fn query_recipe(&self, uuid: uuid::Uuid) -> Result<Recipe, QueryRecipeError>;
 }
 
 #[derive(Debug)]

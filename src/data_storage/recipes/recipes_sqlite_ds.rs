@@ -1,8 +1,10 @@
 use async_trait::async_trait;
-use sqlx::SqlitePool;
+use futures::TryFutureExt;
+use sqlx::{Execute, QueryBuilder, Sqlite, SqlitePool};
+use tracing::info;
 
 use crate::services::recipes::{
-    domain::recipe::Recipe,
+    domain::{ingredient, recipe::Recipe},
     ports::outgoing::{
         delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
         insert_recipe_port::{InsertRecipeError, InsertRecipePort},
@@ -39,7 +41,8 @@ impl From<sqlx::Error> for DeleteRecipeError {
 }
 
 impl From<sqlx::Error> for InsertRecipeError {
-    fn from(_value: sqlx::Error) -> Self {
+    fn from(value: sqlx::Error) -> Self {
+        info!("{}", value);
         InsertRecipeError::InternalError
     }
 }
@@ -58,7 +61,7 @@ impl UpdateRecipePort for RecipeSqliteDS {
 
 #[async_trait]
 impl QueryRecipePort for RecipeSqliteDS {
-    async fn query_recipe(&self, index: i64) -> Result<Recipe, QueryRecipeError> {
+    async fn query_recipe(&self, index: uuid::Uuid) -> Result<Recipe, QueryRecipeError> {
         Err(QueryRecipeError::InternalError)
     }
 }
@@ -73,7 +76,52 @@ impl DeleteRecipePort for RecipeSqliteDS {
 #[async_trait]
 impl InsertRecipePort for RecipeSqliteDS {
     async fn insert_recipe(&self, record: Recipe) -> Result<(), InsertRecipeError> {
-        Err(InsertRecipeError::InternalError)
+        let mut builder =
+            QueryBuilder::new("INSERT INTO recipe (uuid, name, image, method ) VALUES (");
+        let recipe_insert_query = builder
+            .push_bind(record.uuid().to_string())
+            .push(", ")
+            .push_bind(record.name())
+            .push(", ")
+            .push_bind(record.image())
+            .push(", ")
+            .push_bind(record.method())
+            .push(") ")
+            .build();
+
+        let mut builder = QueryBuilder::new("INSERT INTO ingredient (uuid, name, amount, unit) ");
+        let ingredient_insert_query = builder
+            .push_values(record.ingredients().iter(), |mut q, item| {
+                q.push_bind(item.uuid().to_string())
+                    .push_bind(item.name())
+                    .push_bind(item.amount())
+                    .push_bind(item.unit());
+            })
+            .build();
+
+        let mut builder =
+            QueryBuilder::new("INSERT INTO recipe_ingredient (recipe_uuid, ingredient_uuid ) ");
+        let nm_insert_query = builder
+            .push_values(record.ingredients().iter(), |mut q, item| {
+                q.push_bind(record.uuid().to_string())
+                    .push_bind(item.uuid().to_string());
+            })
+            .build();
+
+        let transaction = self.pool.begin().await?;
+
+        let result: Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> = recipe_insert_query
+            .execute(&self.pool)
+            .and_then(|_f| ingredient_insert_query.execute(&self.pool))
+            .and_then(|_f| nm_insert_query.execute(&self.pool))
+            .await;
+
+        if result.is_ok() {
+            transaction.commit().await?;
+        } else {
+            transaction.rollback().await?;
+        }
+        result.and_then(|_v| Ok(())).map_err(|e| e.into())
     }
 }
 

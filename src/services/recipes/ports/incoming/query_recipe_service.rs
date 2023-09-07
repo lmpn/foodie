@@ -6,7 +6,7 @@ use crate::services::recipes::domain::recipe::Recipe;
 
 #[async_trait]
 pub trait QueryRecipeService {
-    async fn query_recipe(&self, id: i64) -> Result<Recipe, QueryRecipeServiceError>;
+    async fn query_recipe(&self, uuid: uuid::Uuid) -> Result<Recipe, QueryRecipeServiceError>;
 }
 
 #[derive(Debug, PartialEq)]
