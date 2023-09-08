@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use futures::TryFutureExt;
-use sqlx::{Execute, QueryBuilder, Sqlite, SqlitePool};
+use sqlx::{Execute, QueryBuilder, SqlitePool};
 use tracing::info;
 use uuid::Uuid;
 
 use crate::services::recipes::{
-    domain::{ingredient, recipe::Recipe},
+    domain::{ingredient::Ingredient, recipe::Recipe},
     ports::outgoing::{
         delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
         insert_recipe_port::{InsertRecipeError, InsertRecipePort},
@@ -62,21 +62,66 @@ impl UpdateRecipePort for RecipeSqliteDS {
 
 #[async_trait]
 impl QueryRecipePort for RecipeSqliteDS {
-    async fn query_recipe(&self, index: uuid::Uuid) -> Result<Recipe, QueryRecipeError> {
-        Err(QueryRecipeError::InternalError)
+    async fn query_recipe(&self, uuid: uuid::Uuid) -> Result<Recipe, QueryRecipeError> {
+        let uuid = uuid.to_string();
+        let result = sqlx::query!(
+            r#"SELECT recipe.uuid as ruuid, recipe.name as rname, recipe.method, recipe.image, ingredient.uuid, ingredient.name, ingredient.unit, ingredient.amount FROM recipe 
+            JOIN recipe_ingredient ON recipe.uuid = recipe_uuid
+            JOIN ingredient ON ingredient.uuid = ingredient_uuid 
+            WHERE recipe.uuid = ?"#,
+            uuid
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| e.into());
+        if result.is_err() {
+            return Err(result.unwrap_err());
+        }
+
+        let records = result.unwrap();
+        if records.is_empty() {
+            return Err(QueryRecipeError::RecordNotFound);
+        }
+
+        let ingredient = records
+            .iter()
+            .map(|record| {
+                Ingredient::new(
+                    Uuid::parse_str(record.uuid.as_ref().unwrap().as_str()).unwrap(),
+                    record.name.clone(),
+                    record.amount,
+                    record.unit.clone(),
+                )
+            })
+            .collect::<Vec<Ingredient>>();
+        let row = records.get(0).unwrap();
+        let recipe = Recipe::new(
+            Uuid::parse_str(
+                row.uuid
+                    .as_ref()
+                    .ok_or(QueryRecipeError::InternalError)?
+                    .as_str(),
+            )
+            .map_err(|_e| QueryRecipeError::InternalError)?,
+            row.rname.clone(),
+            row.image.clone().unwrap_or(String::new()),
+            row.method.clone().unwrap_or(String::new()),
+            ingredient,
+        );
+        Ok(recipe)
     }
 }
 
 #[async_trait]
 impl DeleteRecipePort for RecipeSqliteDS {
     async fn delete_recipe(&self, uuid: Uuid) -> Result<(), DeleteRecipeError> {
-        let mut builder = QueryBuilder::new("SELECT * FROM recipe WHERE uuid = ");
+        let mut builder = QueryBuilder::new("DELETE FROM recipe WHERE uuid = ");
         let query = builder.push_bind(uuid.to_string()).build();
-        query
-            .execute(&self.pool)
-            .await
-            .map(|_v| ())
-            .map_err(|e| e.into())
+        info!("{}", query.sql());
+        query.execute(&self.pool).await.map(|_v| ()).map_err(|e| {
+            info!("{}", e);
+            e.into()
+        })
     }
 }
 
@@ -109,8 +154,8 @@ impl InsertRecipePort for RecipeSqliteDS {
             QueryBuilder::new("INSERT INTO recipe_ingredient (recipe_uuid, ingredient_uuid ) ");
         let nm_insert_query = builder
             .push_values(record.ingredients().iter(), |mut q, item| {
-                q.push_bind(record.uuid().to_string())
-                    .push_bind(item.uuid().to_string());
+                q.push_bind(record.uuid().to_string());
+                q.push_bind(item.uuid().to_string());
             })
             .build();
 

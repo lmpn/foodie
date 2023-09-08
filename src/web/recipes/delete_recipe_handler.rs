@@ -6,26 +6,44 @@ use axum::{
     Json,
 };
 use serde_json::json;
+use uuid::Uuid;
 
 use crate::{
     error::YaissError,
-    services::recipes::ports::incoming::delete_recipe_service::DeleteRecipeService,
+    services::recipes::ports::incoming::delete_recipe_service::{
+        DeleteRecipeService, DeleteRecipeServiceError,
+    },
 };
 
 pub(crate) type DynDeleteRecipesService = Arc<dyn DeleteRecipeService + Send + Sync>;
 
 pub async fn delete_recipe_handler(
-    axum::extract::State(_service): axum::extract::State<DynDeleteRecipesService>,
-    _identifier: axum::extract::Path<i64>,
+    axum::extract::State(service): axum::extract::State<DynDeleteRecipesService>,
+    identifier: axum::extract::Path<Uuid>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let builder = Response::builder()
-        .status(StatusCode::INTERNAL_SERVER_ERROR)
-        .header(axum::http::header::CONTENT_TYPE, "application/json")
-        .body(body::boxed(
-            Json(json!({
-                "error": "not implemented",
-            }))
-            .to_string(),
-        ));
+    let builder = match service.delete_recipe(identifier.0).await {
+        Ok(()) => Response::builder()
+            .status(StatusCode::OK)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(BoxBody::default()),
+        Err(DeleteRecipeServiceError::InternalError) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(
+                Json(json!({
+                    "error": format!("{}", DeleteRecipeServiceError::InternalError)
+                }))
+                .to_string(),
+            )),
+        Err(DeleteRecipeServiceError::RecipeNotFound) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(
+                Json(json!({
+                    "error": format!("{}", DeleteRecipeServiceError::RecipeNotFound)
+                }))
+                .to_string(),
+            )),
+    };
     builder.map_err(|e| e.into())
 }
