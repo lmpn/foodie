@@ -3,7 +3,11 @@ use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 #[async_trait]
 pub trait UpdateRecipePort {
-    async fn update_recipe(&self, recipe: Recipe) -> Result<(), UpdateRecipeError>;
+    async fn update_recipe(
+        &self,
+        recipe: Recipe,
+        deleted_ingredients: Vec<uuid::Uuid>,
+    ) -> Result<(), UpdateRecipeError>;
 }
 
 #[derive(Debug)]

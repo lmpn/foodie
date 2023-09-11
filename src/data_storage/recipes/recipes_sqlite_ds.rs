@@ -55,8 +55,30 @@ pub struct RecipeSqliteDS {
 
 #[async_trait]
 impl UpdateRecipePort for RecipeSqliteDS {
-    async fn update_recipe(&self, record: Recipe) -> Result<(), UpdateRecipeError> {
-        Err(UpdateRecipeError::InternalError)
+    async fn update_recipe(
+        &self,
+        record: Recipe,
+        deleted_ingredients: Vec<uuid::Uuid>,
+    ) -> Result<(), UpdateRecipeError> {
+        let name = record.name().to_string();
+        let method = record.method();
+        let image = record.image();
+        let uuid = record.uuid().to_string();
+        sqlx::query!(
+            r#"
+            UPDATE recipe 
+            SET name = ?, method = ?, image = ?
+            WHERE uuid = ?
+        "#,
+            name,
+            method,
+            image,
+            uuid
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_e| ())
+        .map_err(|e| e.into())
     }
 }
 

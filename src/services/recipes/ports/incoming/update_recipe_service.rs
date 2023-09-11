@@ -6,7 +6,11 @@ use crate::services::recipes::domain::recipe::Recipe;
 
 #[async_trait]
 pub trait UpdateRecipeService {
-    async fn update_recipe(&self, recipe: Recipe) -> Result<(), UpdateRecipeServiceError>;
+    async fn update_recipe(
+        &self,
+        recipe: Recipe,
+        delete_ingredients: Vec<uuid::Uuid>,
+    ) -> Result<(), UpdateRecipeServiceError>;
 }
 
 #[derive(Debug, PartialEq)]
