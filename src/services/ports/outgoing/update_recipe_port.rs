@@ -1,4 +1,4 @@
-use crate::services::recipes::domain::recipe::Recipe;
+use crate::services::domain::recipe::Recipe;
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 #[async_trait]

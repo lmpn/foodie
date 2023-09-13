@@ -10,7 +10,7 @@ use serde_json::json;
 
 use crate::{
     error::YaissError,
-    services::recipes::{
+    services::{
         domain::{ingredient::Ingredient, recipe::Recipe},
         ports::incoming::update_recipe_service::{UpdateRecipeService, UpdateRecipeServiceError},
     },

@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display};
 
 use async_trait::async_trait;
 
-use crate::services::recipes::domain::recipe::Recipe;
+use crate::services::domain::recipe::Recipe;
 
 #[async_trait]
 pub trait InsertRecipeService {

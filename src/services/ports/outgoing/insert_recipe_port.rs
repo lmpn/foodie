@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use std::{error::Error, fmt::Display};
 
-use crate::services::recipes::domain::recipe::Recipe;
+use crate::services::domain::recipe::Recipe;
 // #[automock(type Index = i64;)]
 #[async_trait]
 pub trait InsertRecipePort {

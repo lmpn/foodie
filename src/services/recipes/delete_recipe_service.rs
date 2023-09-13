@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::ports::{
+use crate::services::ports::{
     incoming::delete_recipe_service::{DeleteRecipeService, DeleteRecipeServiceError},
     outgoing::delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
 };

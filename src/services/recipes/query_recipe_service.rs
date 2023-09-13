@@ -1,4 +1,4 @@
-use super::{
+use crate::services::{
     domain::recipe::Recipe,
     ports::{
         incoming::query_recipe_service::{QueryRecipeService, QueryRecipeServiceError},

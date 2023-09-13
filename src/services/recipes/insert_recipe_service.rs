@@ -1,13 +1,12 @@
-use crate::services::recipes::{
+use async_trait::async_trait;
+
+use crate::services::{
     domain::recipe::Recipe,
     ports::{
         incoming::insert_recipe_service::{InsertRecipeService, InsertRecipeServiceError},
-        outgoing::insert_recipe_port::InsertRecipePort,
+        outgoing::insert_recipe_port::{InsertRecipeError, InsertRecipePort},
     },
 };
-use async_trait::async_trait;
-
-use super::ports::outgoing::insert_recipe_port::InsertRecipeError;
 
 pub struct InsertRecipe<Storage>
 where

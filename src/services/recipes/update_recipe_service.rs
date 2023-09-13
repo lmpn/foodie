@@ -1,5 +1,5 @@
-use super::{
-    domain::{ingredient::Ingredient, recipe::Recipe},
+use crate::services::{
+    domain::recipe::Recipe,
     ports::{
         incoming::update_recipe_service::{UpdateRecipeService, UpdateRecipeServiceError},
         outgoing::update_recipe_port::{UpdateRecipeError, UpdateRecipePort},

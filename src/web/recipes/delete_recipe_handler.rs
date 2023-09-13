@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     error::YaissError,
-    services::recipes::ports::incoming::delete_recipe_service::{
+    services::ports::incoming::delete_recipe_service::{
         DeleteRecipeService, DeleteRecipeServiceError,
     },
 };
