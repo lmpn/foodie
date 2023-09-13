@@ -4,7 +4,7 @@ use sqlx::{QueryBuilder, SqlitePool};
 use tracing::info;
 use uuid::Uuid;
 
-use crate::services::recipes::{
+use crate::services::{
     domain::{ingredient::Ingredient, recipe::Recipe},
     ports::outgoing::{
         delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
