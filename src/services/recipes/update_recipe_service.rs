@@ -1,11 +1,21 @@
 use super::{
-    domain::recipe::Recipe,
+    domain::{ingredient::Ingredient, recipe::Recipe},
     ports::{
         incoming::update_recipe_service::{UpdateRecipeService, UpdateRecipeServiceError},
-        outgoing::update_recipe_port::UpdateRecipePort,
+        outgoing::update_recipe_port::{UpdateRecipeError, UpdateRecipePort},
     },
 };
 use async_trait::async_trait;
+use uuid::Uuid;
+
+impl From<UpdateRecipeError> for UpdateRecipeServiceError {
+    fn from(value: UpdateRecipeError) -> Self {
+        match value {
+            UpdateRecipeError::RecordNotFound => UpdateRecipeServiceError::RecipeNotFound,
+            UpdateRecipeError::InternalError => UpdateRecipeServiceError::InternalError,
+        }
+    }
+}
 
 pub struct UpdateRecipe<Storage>
 where
@@ -19,8 +29,15 @@ impl<Storage> UpdateRecipeService for UpdateRecipe<Storage>
 where
     Storage: UpdateRecipePort + Sync + Send,
 {
-    async fn update_recipe(&self, _recipe: Recipe) -> Result<(), UpdateRecipeServiceError> {
-        Ok(())
+    async fn update_recipe(
+        &self,
+        recipe: Recipe,
+        deleted_ingredients: Vec<Uuid>,
+    ) -> Result<(), UpdateRecipeServiceError> {
+        self.storage
+            .update_recipe(recipe, deleted_ingredients)
+            .await
+            .map_err(|e| e.into())
     }
 }
 

@@ -12,13 +12,13 @@ use crate::{
     error::YaissError,
     services::recipes::{
         domain::{ingredient::Ingredient, recipe::Recipe},
-        ports::incoming::update_recipe_service::UpdateRecipeService,
+        ports::incoming::update_recipe_service::{UpdateRecipeService, UpdateRecipeServiceError},
     },
 };
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct IngredientJson {
-    uuid: uuid::Uuid,
+    uuid: Option<uuid::Uuid>,
     name: String,
     amount: f64,
     unit: String,
@@ -26,7 +26,12 @@ pub struct IngredientJson {
 
 impl Into<Ingredient> for IngredientJson {
     fn into(self) -> Ingredient {
-        Ingredient::new(self.uuid, self.name, self.amount, self.unit)
+        Ingredient::new(
+            self.uuid.unwrap_or(uuid::Uuid::default()),
+            self.name,
+            self.amount,
+            self.unit,
+        )
     }
 }
 
@@ -62,15 +67,30 @@ pub async fn update_recipe_handler(
 ) -> Result<Response<BoxBody>, YaissError> {
     let (delete_ingredients, recipe): (Vec<uuid::Uuid>, Recipe) =
         (json.0.delete_ingredients.clone(), json.0.into());
-    let result = service.update_recipe(recipe, delete_ingredients);
-    let builder = Response::builder()
-        .status(StatusCode::INTERNAL_SERVER_ERROR)
-        .header(axum::http::header::CONTENT_TYPE, "application/json")
-        .body(body::boxed(
-            Json(json!({
-                "error": "not implemented",
-            }))
-            .to_string(),
-        ));
+    let result = service.update_recipe(recipe, delete_ingredients).await;
+    let builder = match result {
+        Ok(()) => Response::builder()
+            .status(StatusCode::OK)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(BoxBody::default()),
+        Err(UpdateRecipeServiceError::RecipeNotFound) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(
+                Json(json!({
+                    "error": format!("{:?}",UpdateRecipeServiceError::RecipeNotFound)
+                }))
+                .to_string(),
+            )),
+        Err(UpdateRecipeServiceError::InternalError) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(
+                Json(json!({
+                    "error": format!("{:?}",UpdateRecipeServiceError::InternalError)
+                }))
+                .to_string(),
+            )),
+    };
     builder.map_err(|e| e.into())
 }

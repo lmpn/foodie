@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::TryFutureExt;
-use sqlx::{Execute, QueryBuilder, SqlitePool};
+use sqlx::{QueryBuilder, SqlitePool};
 use tracing::info;
 use uuid::Uuid;
 
@@ -60,16 +60,13 @@ impl UpdateRecipePort for RecipeSqliteDS {
         record: Recipe,
         deleted_ingredients: Vec<uuid::Uuid>,
     ) -> Result<(), UpdateRecipeError> {
+        let transaction = self.pool.begin().await?;
         let name = record.name().to_string();
         let method = record.method();
         let image = record.image();
         let uuid = record.uuid().to_string();
-        sqlx::query!(
-            r#"
-            UPDATE recipe 
-            SET name = ?, method = ?, image = ?
-            WHERE uuid = ?
-        "#,
+        let result = sqlx::query!(
+            r#" UPDATE recipe SET name = ?, method = ?, image = ?  WHERE uuid = ?  "#,
             name,
             method,
             image,
@@ -78,7 +75,52 @@ impl UpdateRecipePort for RecipeSqliteDS {
         .execute(&self.pool)
         .await
         .map(|_e| ())
-        .map_err(|e| e.into())
+        .map_err(|e| e.into());
+        if result.is_err() {
+            transaction.rollback().await?;
+            return result;
+        }
+        for uuid in deleted_ingredients {
+            let uuid = uuid.to_string();
+            let result = sqlx::query!(r#"DELETE FROM ingredient WHERE uuid = ?"#, uuid)
+                .execute(&self.pool)
+                .await
+                .map(|_e| ())
+                .map_err(|e| e.into());
+            if result.is_err() {
+                transaction.rollback().await?;
+                return result;
+            }
+        }
+        for item in record.ingredients() {
+            let uuid = item.uuid().to_string();
+            let name = item.name();
+            let amount = item.amount();
+            let unit = item.unit();
+            let result = sqlx::query!(
+                "INSERT INTO ingredient (uuid, name, amount, unit) 
+                          VALUES (?,?,?,?) 
+                          ON CONFLICT (uuid) 
+                          DO UPDATE SET name = ?, amount = ?, unit = ?",
+                uuid,
+                name,
+                amount,
+                unit,
+                name,
+                amount,
+                unit
+            )
+            .execute(&self.pool)
+            .await
+            .map(|_e| ())
+            .map_err(|e| e.into());
+            if result.is_err() {
+                transaction.rollback().await?;
+                return result;
+            }
+        }
+        transaction.commit().await?;
+        Ok(())
     }
 }
 
@@ -139,11 +181,11 @@ impl DeleteRecipePort for RecipeSqliteDS {
     async fn delete_recipe(&self, uuid: Uuid) -> Result<(), DeleteRecipeError> {
         let mut builder = QueryBuilder::new("DELETE FROM recipe WHERE uuid = ");
         let query = builder.push_bind(uuid.to_string()).build();
-        info!("{}", query.sql());
-        query.execute(&self.pool).await.map(|_v| ()).map_err(|e| {
-            info!("{}", e);
-            e.into()
-        })
+        query
+            .execute(&self.pool)
+            .await
+            .map(|_v| ())
+            .map_err(|e| e.into())
     }
 }
 

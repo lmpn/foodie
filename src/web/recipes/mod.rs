@@ -37,10 +37,7 @@ pub fn router(state: State) -> Router<(), Body> {
         Arc::new(UpdateRecipe::new(storage.clone())) as DynUpdateRecipeService;
 
     let recipes_routes = Router::new()
-        .route(
-            "/:identifier",
-            put(update_recipe_handler::update_recipe_handler),
-        )
+        .route("/", put(update_recipe_handler::update_recipe_handler))
         .with_state(update_recipe_service)
         .route(
             "/:identifier",
