@@ -6,8 +6,11 @@ use crate::services::{
     },
 };
 use async_trait::async_trait;
+use tracing::error;
+
 impl From<QueryRecipeError> for QueryRecipeServiceError {
     fn from(value: QueryRecipeError) -> Self {
+        error!("{}", value);
         match value {
             QueryRecipeError::RecordNotFound => QueryRecipeServiceError::RecipeNotFound,
             QueryRecipeError::InternalError => QueryRecipeServiceError::InternalError,

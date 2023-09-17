@@ -6,10 +6,12 @@ use crate::services::{
     },
 };
 use async_trait::async_trait;
+use tracing::error;
 use uuid::Uuid;
 
 impl From<UpdateRecipeError> for UpdateRecipeServiceError {
     fn from(value: UpdateRecipeError) -> Self {
+        error!("{}", value);
         match value {
             UpdateRecipeError::RecordNotFound => UpdateRecipeServiceError::RecipeNotFound,
             UpdateRecipeError::InternalError => UpdateRecipeServiceError::InternalError,

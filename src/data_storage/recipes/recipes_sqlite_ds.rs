@@ -161,7 +161,7 @@ impl QueryRecipePort for RecipeSqliteDS {
         let row = records.get(0).unwrap();
         let recipe = Recipe::new(
             Uuid::parse_str(
-                row.uuid
+                row.ruuid
                     .as_ref()
                     .ok_or(QueryRecipeError::InternalError)?
                     .as_str(),

@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use tracing::error;
 
 use crate::services::{
     domain::recipe::Recipe,
@@ -7,6 +8,15 @@ use crate::services::{
         outgoing::insert_recipe_port::{InsertRecipeError, InsertRecipePort},
     },
 };
+
+impl From<InsertRecipeError> for InsertRecipeServiceError {
+    fn from(value: InsertRecipeError) -> Self {
+        error!("{}", value);
+        match value {
+            InsertRecipeError::InternalError => InsertRecipeServiceError::InternalError,
+        }
+    }
+}
 
 pub struct InsertRecipe<Storage>
 where

@@ -25,7 +25,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(state: State, configuration: &Configuration) -> Self {
-        let router = Self::create_router(state);
+        let router = Self::create_router(state, configuration);
         let sock_address = SocketAddr::from(configuration.address());
         Self {
             handle: Some(Handle::new()),
@@ -60,7 +60,7 @@ impl Server {
         self.stop().await;
 
         self.address = sock_address;
-        self.router = Self::create_router(state);
+        self.router = Self::create_router(state, &configuration);
 
         self.serve()
     }
@@ -79,14 +79,15 @@ impl Server {
         event!(Level::INFO, "Stopping server");
     }
 
-    fn create_router(state: State) -> Router {
+    fn create_router(state: State, configuration: &Configuration) -> Router {
         let cors = CorsLayer::new()
             .allow_origin(Any)
             .allow_methods([Method::GET])
             .allow_headers([AUTHORIZATION, ORIGIN, ACCEPT, ACCESS_CONTROL_ALLOW_ORIGIN]);
         Router::new()
             .route("/", get(hello_world))
-            .merge(web::recipes::router(state))
+            .merge(web::recipes::router(state.clone(), configuration))
+            .merge(web::authorization::router(state, configuration))
             .layer(cors)
             .fallback(web::handler_404)
     }

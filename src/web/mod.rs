@@ -3,6 +3,8 @@ use hyper::{Body, StatusCode};
 use serde_json::json;
 
 use crate::error::YaissError;
+pub mod authorization;
+pub mod middleware;
 pub mod recipes;
 
 pub async fn handler_404() -> Result<Response<Body>, YaissError> {

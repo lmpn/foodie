@@ -1,9 +1,20 @@
 use async_trait::async_trait;
+use tracing::error;
 
 use crate::services::ports::{
     incoming::delete_recipe_service::{DeleteRecipeService, DeleteRecipeServiceError},
     outgoing::delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
 };
+
+impl From<DeleteRecipeError> for DeleteRecipeServiceError {
+    fn from(value: DeleteRecipeError) -> Self {
+        error!("{}", value);
+        match value {
+            DeleteRecipeError::InternalError => DeleteRecipeServiceError::InternalError,
+            DeleteRecipeError::RecordNotFound => DeleteRecipeServiceError::RecipeNotFound,
+        }
+    }
+}
 
 pub struct DeleteRecipe<Storage>
 where
