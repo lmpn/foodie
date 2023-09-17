@@ -13,9 +13,9 @@ use axum_server::Handle;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{event, Level};
 
+use crate::application::web;
 use crate::configuration::Configuration;
 use crate::state::State;
-use crate::web;
 
 pub struct Server {
     handle: Option<Handle>,
