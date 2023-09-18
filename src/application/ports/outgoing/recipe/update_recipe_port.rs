@@ -1,4 +1,3 @@
-use crate::application::domain::recipe::recipe::Recipe;
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 
@@ -6,8 +5,10 @@ use std::{error::Error, fmt::Display};
 pub trait UpdateRecipePort {
     async fn update_recipe(
         &self,
-        recipe: Recipe,
-        deleted_ingredients: Vec<uuid::Uuid>,
+        uuid: &str,
+        name: &str,
+        image: &str,
+        method: &str,
     ) -> Result<(), UpdateRecipeError>;
 }
 

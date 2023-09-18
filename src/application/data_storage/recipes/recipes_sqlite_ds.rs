@@ -57,14 +57,12 @@ pub struct RecipeSqliteDS {
 impl UpdateRecipePort for RecipeSqliteDS {
     async fn update_recipe(
         &self,
-        record: Recipe,
-        deleted_ingredients: Vec<uuid::Uuid>,
+        uuid: &str,
+        name: &str,
+        image: &str,
+        method: &str,
     ) -> Result<(), UpdateRecipeError> {
         let transaction = self.pool.begin().await?;
-        let name = record.name().to_string();
-        let method = record.method();
-        let image = record.image();
-        let uuid = record.uuid().to_string();
         let result = sqlx::query!(
             r#" UPDATE recipe SET name = ?, method = ?, image = ?  WHERE uuid = ?  "#,
             name,
@@ -79,45 +77,6 @@ impl UpdateRecipePort for RecipeSqliteDS {
         if result.is_err() {
             transaction.rollback().await?;
             return result;
-        }
-        for uuid in deleted_ingredients {
-            let uuid = uuid.to_string();
-            let result = sqlx::query!(r#"DELETE FROM ingredient WHERE uuid = ?"#, uuid)
-                .execute(&self.pool)
-                .await
-                .map(|_e| ())
-                .map_err(|e| e.into());
-            if result.is_err() {
-                transaction.rollback().await?;
-                return result;
-            }
-        }
-        for item in record.ingredients() {
-            let uuid = item.uuid().to_string();
-            let name = item.name();
-            let amount = item.amount();
-            let unit = item.unit();
-            let result = sqlx::query!(
-                "INSERT INTO ingredient (uuid, name, amount, unit) 
-                          VALUES (?,?,?,?) 
-                          ON CONFLICT (uuid) 
-                          DO UPDATE SET name = ?, amount = ?, unit = ?",
-                uuid,
-                name,
-                amount,
-                unit,
-                name,
-                amount,
-                unit
-            )
-            .execute(&self.pool)
-            .await
-            .map(|_e| ())
-            .map_err(|e| e.into());
-            if result.is_err() {
-                transaction.rollback().await?;
-                return result;
-            }
         }
         transaction.commit().await?;
         Ok(())

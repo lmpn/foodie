@@ -1,9 +1,6 @@
 use crate::{
-    application::{
-        domain::recipe::{ingredient::Ingredient, recipe::Recipe},
-        ports::incoming::recipe::update_recipe_service::{
-            UpdateRecipeService, UpdateRecipeServiceError,
-        },
+    application::ports::incoming::recipe::update_recipe_service::{
+        Request, UpdateRecipeService, UpdateRecipeServiceError,
     },
     error::YaissError,
 };
@@ -15,59 +12,26 @@ use axum::{
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-
 #[derive(Debug, Clone, Deserialize)]
-pub struct IngredientJson {
-    uuid: Option<uuid::Uuid>,
-    name: String,
-    amount: f64,
-    unit: String,
-}
-
-impl Into<Ingredient> for IngredientJson {
-    fn into(self) -> Ingredient {
-        Ingredient::new(
-            self.uuid.unwrap_or(uuid::Uuid::default()),
-            self.name,
-            self.amount,
-            self.unit,
-        )
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct RecipeJson {
+pub struct UpdateRecipeJson {
     uuid: uuid::Uuid,
     name: String,
     image: String,
     method: String,
-    update_ingredients: Vec<IngredientJson>,
-    delete_ingredients: Vec<uuid::Uuid>,
 }
 
-impl Into<Recipe> for RecipeJson {
-    fn into(self) -> Recipe {
-        Recipe::new(
-            self.uuid,
-            self.name,
-            self.image,
-            self.method,
-            self.update_ingredients
-                .into_iter()
-                .map(|e| e.into())
-                .collect(),
-        )
+impl Into<Request> for UpdateRecipeJson {
+    fn into(self) -> Request {
+        Request::new(self.uuid, self.name, self.image, self.method)
     }
 }
 
 pub(crate) type DynUpdateRecipeService = Arc<dyn UpdateRecipeService + Sync + Send>;
 pub async fn update_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynUpdateRecipeService>,
-    json: Json<RecipeJson>,
+    json: Json<UpdateRecipeJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let (delete_ingredients, recipe): (Vec<uuid::Uuid>, Recipe) =
-        (json.0.delete_ingredients.clone(), json.0.into());
-    let result = service.update_recipe(recipe, delete_ingredients).await;
+    let result = service.update_recipe(json.0.into()).await;
     let builder = match result {
         Ok(()) => Response::builder()
             .status(StatusCode::OK)

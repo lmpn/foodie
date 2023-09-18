@@ -1,13 +1,11 @@
-use crate::application::{
-    domain::recipe::recipe::Recipe,
-    ports::{
-        incoming::recipe::update_recipe_service::{UpdateRecipeService, UpdateRecipeServiceError},
-        outgoing::recipe::update_recipe_port::{UpdateRecipeError, UpdateRecipePort},
+use crate::application::ports::{
+    incoming::recipe::update_recipe_service::{
+        Request, UpdateRecipeService, UpdateRecipeServiceError,
     },
+    outgoing::recipe::update_recipe_port::{UpdateRecipeError, UpdateRecipePort},
 };
 use async_trait::async_trait;
 use tracing::error;
-use uuid::Uuid;
 
 impl From<UpdateRecipeError> for UpdateRecipeServiceError {
     fn from(value: UpdateRecipeError) -> Self {
@@ -31,13 +29,14 @@ impl<Storage> UpdateRecipeService for UpdateRecipe<Storage>
 where
     Storage: UpdateRecipePort + Sync + Send,
 {
-    async fn update_recipe(
-        &self,
-        recipe: Recipe,
-        deleted_ingredients: Vec<Uuid>,
-    ) -> Result<(), UpdateRecipeServiceError> {
+    async fn update_recipe(&self, request: Request) -> Result<(), UpdateRecipeServiceError> {
         self.storage
-            .update_recipe(recipe, deleted_ingredients)
+            .update_recipe(
+                request.uuid().to_string().as_str(),
+                request.name(),
+                request.image(),
+                request.method(),
+            )
             .await
             .map_err(|e| e.into())
     }
