@@ -150,57 +150,23 @@ impl DeleteRecipePort for RecipeSqliteDS {
 
 #[async_trait]
 impl InsertRecipePort for RecipeSqliteDS {
-    async fn insert_recipe(&self, record: Recipe) -> Result<(), InsertRecipeError> {
-        let mut builder =
-            QueryBuilder::new("INSERT INTO recipe (uuid, name, image, method ) VALUES (");
-        let recipe_insert_query = builder
-            .push_bind(record.uuid().to_string())
-            .push(", ")
-            .push_bind(record.name())
-            .push(", ")
-            .push_bind(record.image())
-            .push(", ")
-            .push_bind(record.method())
-            .push(") ")
-            .build();
-        let mut builder = QueryBuilder::new("INSERT INTO ingredient (uuid, name, amount, unit) ");
-        let ingredient_insert_query = builder
-            .push_values(record.ingredients().iter(), |mut q, item| {
-                q.push_bind(item.uuid().to_string())
-                    .push_bind(item.name())
-                    .push_bind(item.amount())
-                    .push_bind(item.unit());
-            })
-            .build();
-
-        let mut builder =
-            QueryBuilder::new("INSERT INTO recipe_ingredient (recipe_uuid, ingredient_uuid ) ");
-        let nm_insert_query = builder
-            .push_values(record.ingredients().iter(), |mut q, item| {
-                q.push_bind(record.uuid().to_string());
-                q.push_bind(item.uuid().to_string());
-            })
-            .build();
-
-        let transaction = self.pool.begin().await?;
-
-        let result: Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> = recipe_insert_query
-            .execute(&self.pool)
-            .and_then(|_f| ingredient_insert_query.execute(&self.pool))
-            .and_then(|_f| nm_insert_query.execute(&self.pool))
-            .await;
-
-        if result.is_ok() {
-            transaction.commit().await?;
-        } else {
-            transaction.rollback().await?;
-        }
-        result.and_then(|_v| Ok(())).map_err(|e| e.into())
-    }
-}
-
-impl RecipeSqliteDS {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    async fn insert_recipe(
+        &self,
+        uuid: &str,
+        name: &str,
+        image: &str,
+        method: &str,
+    ) -> Result<(), InsertRecipeError> {
+        sqlx::query!(
+            "INSERT INTO recipe (uuid, name, method, image) VALUES (?, ?, ?, ?)",
+            uuid,
+            name,
+            method,
+            image
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+        .map_err(Into::into)
     }
 }

@@ -1,10 +1,38 @@
-use crate::application::domain::recipe::recipe::Recipe;
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 
+#[derive(Debug, Clone)]
+pub struct Request {
+    name: String,
+    image: String,
+    method: String,
+}
+
+impl Request {
+    pub fn new(name: String, image: String, method: String) -> Self {
+        Self {
+            name,
+            image,
+            method,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+
+    pub fn image(&self) -> &str {
+        self.image.as_ref()
+    }
+
+    pub fn method(&self) -> &str {
+        self.method.as_ref()
+    }
+}
+
 #[async_trait]
 pub trait InsertRecipeService {
-    async fn insert_recipe(&self, recipe: Recipe) -> Result<(), InsertRecipeServiceError>;
+    async fn insert_recipe(&self, recipe: Request) -> Result<(), InsertRecipeServiceError>;
 }
 
 #[derive(Debug, PartialEq)]

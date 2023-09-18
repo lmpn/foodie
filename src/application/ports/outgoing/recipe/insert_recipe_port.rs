@@ -1,11 +1,15 @@
-use crate::application::domain::recipe::recipe::Recipe;
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 
-// #[automock(type Index = i64;)]
 #[async_trait]
 pub trait InsertRecipePort {
-    async fn insert_recipe(&self, recipe: Recipe) -> Result<(), InsertRecipeError>;
+    async fn insert_recipe(
+        &self,
+        uuid: &str,
+        name: &str,
+        image: &str,
+        method: &str,
+    ) -> Result<(), InsertRecipeError>;
 }
 
 #[derive(Debug)]

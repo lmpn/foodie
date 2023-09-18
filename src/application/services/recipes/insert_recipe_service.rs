@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use tracing::error;
 
-use crate::application::{
-    domain::recipe::recipe::Recipe,
-    ports::{
-        incoming::recipe::insert_recipe_service::{InsertRecipeService, InsertRecipeServiceError},
-        outgoing::recipe::insert_recipe_port::{InsertRecipeError, InsertRecipePort},
+use crate::application::ports::{
+    incoming::recipe::insert_recipe_service::{
+        InsertRecipeService, InsertRecipeServiceError, Request,
     },
+    outgoing::recipe::insert_recipe_port::{InsertRecipeError, InsertRecipePort},
 };
 
 impl From<InsertRecipeError> for InsertRecipeServiceError {
@@ -30,11 +29,17 @@ impl<Storage> InsertRecipeService for InsertRecipe<Storage>
 where
     Storage: InsertRecipePort + Sync + Send,
 {
-    async fn insert_recipe(&self, recipe: Recipe) -> Result<(), InsertRecipeServiceError> {
-        if recipe.ingredients().is_empty() {
-            return Err(InsertRecipeServiceError::NoIngredients);
-        }
-        match self.storage.insert_recipe(recipe).await {
+    async fn insert_recipe(&self, request: Request) -> Result<(), InsertRecipeServiceError> {
+        match self
+            .storage
+            .insert_recipe(
+                uuid::Uuid::new_v4().to_string().as_str(),
+                request.name(),
+                request.image(),
+                request.method(),
+            )
+            .await
+        {
             Ok(()) => Ok(()),
             Err(InsertRecipeError::InternalError) => Err(InsertRecipeServiceError::InternalError),
         }
