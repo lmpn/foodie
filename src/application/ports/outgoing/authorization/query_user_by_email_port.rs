@@ -4,7 +4,7 @@ use std::{error::Error, fmt::Display};
 
 #[async_trait]
 pub trait QueryUserByEmailPort {
-    async fn query_user_by_email(&self, email: String) -> Result<User, QueryUserByEmailError>;
+    async fn query_user_by_email(&self, email: &str) -> Result<User, QueryUserByEmailError>;
 }
 
 #[derive(Debug, PartialEq)]

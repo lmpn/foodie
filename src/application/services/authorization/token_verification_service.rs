@@ -1,8 +1,8 @@
 use crate::application::{
     domain::authorization::{token_claims::TokenClaims, user::User},
     ports::{
-        incoming::authorization::token_verification_service::{
-            TokenVerificationService, TokenVerificationServiceError,
+        incoming::authorization::token_verification_query::{
+            TokenVerificationQuery, TokenVerificationQueryError,
         },
         outgoing::authorization::query_user_port::{QueryUserError, QueryUserPort},
     },
@@ -11,30 +11,30 @@ use async_trait::async_trait;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use tracing::error;
 
-impl From<QueryUserError> for TokenVerificationServiceError {
+impl From<QueryUserError> for TokenVerificationQueryError {
     fn from(value: QueryUserError) -> Self {
         error!("{}", value);
         match value {
-            QueryUserError::UserNotFound => TokenVerificationServiceError::UserNotFound,
-            QueryUserError::InternalError => TokenVerificationServiceError::InternalError,
+            QueryUserError::UserNotFound => TokenVerificationQueryError::UserNotFound,
+            QueryUserError::InternalError => TokenVerificationQueryError::InternalError,
         }
     }
 }
-impl From<uuid::Error> for TokenVerificationServiceError {
+impl From<uuid::Error> for TokenVerificationQueryError {
     fn from(value: uuid::Error) -> Self {
         error!("{}", value);
-        TokenVerificationServiceError::InternalError
+        TokenVerificationQueryError::InternalError
     }
 }
 
-impl From<jsonwebtoken::errors::Error> for TokenVerificationServiceError {
+impl From<jsonwebtoken::errors::Error> for TokenVerificationQueryError {
     fn from(value: jsonwebtoken::errors::Error) -> Self {
         error!("{:?}:{}", value.kind(), value);
-        TokenVerificationServiceError::TokenDecoding
+        TokenVerificationQueryError::TokenDecoding
     }
 }
 
-pub struct TokenVerification<Storage>
+pub struct TokenVerificationService<Storage>
 where
     Storage: QueryUserPort + Send + Sync,
 {
@@ -42,7 +42,7 @@ where
     secret: String,
 }
 
-impl<Storage> TokenVerification<Storage>
+impl<Storage> TokenVerificationService<Storage>
 where
     Storage: QueryUserPort + Send + Sync,
 {
@@ -52,11 +52,11 @@ where
 }
 
 #[async_trait]
-impl<Storage> TokenVerificationService for TokenVerification<Storage>
+impl<Storage> TokenVerificationQuery for TokenVerificationService<Storage>
 where
     Storage: QueryUserPort + Send + Sync,
 {
-    async fn verify_token(&self, token: String) -> Result<User, TokenVerificationServiceError> {
+    async fn verify_token(&self, token: String) -> Result<User, TokenVerificationQueryError> {
         let claims = decode::<TokenClaims>(
             &token,
             &DecodingKey::from_secret(self.secret.as_ref()),

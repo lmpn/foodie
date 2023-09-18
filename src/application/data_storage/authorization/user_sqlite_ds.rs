@@ -167,7 +167,7 @@ impl QueryUserPort for UserSqliteDS {
 
 #[async_trait]
 impl QueryUserByEmailPort for UserSqliteDS {
-    async fn query_user_by_email(&self, email: String) -> Result<User, QueryUserByEmailError> {
+    async fn query_user_by_email(&self, email: &str) -> Result<User, QueryUserByEmailError> {
         let result = sqlx::query_as!(UserRecord, r#"SELECT * FROM users WHERE email = ?"#, email)
             .fetch_one(&self.pool)
             .await?;

@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 
 #[async_trait]
 pub trait DeleteRecipePort {
-    async fn delete_recipe(&self, uuid: uuid::Uuid) -> Result<(), DeleteRecipeError>;
+    async fn delete_recipe(&self, uuid: &str) -> Result<(), DeleteRecipeError>;
 }
 
 #[derive(Debug)]

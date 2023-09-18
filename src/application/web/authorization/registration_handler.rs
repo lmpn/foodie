@@ -12,17 +12,23 @@ use serde_json::json;
 
 use crate::{
     application::domain::authorization::filtered_user::FilteredUser,
-    application::ports::incoming::authorization::registration_service::{
-        RegistrationService, RegistrationServiceError,
+    application::ports::incoming::authorization::registration_command::{
+        RegistrationCommand, RegistrationCommandError, Request,
     },
     error::YaissError,
 };
 
 #[derive(Debug, Deserialize)]
-pub struct UserRegistration {
+pub struct UserRegistrationJson {
     pub name: String,
     pub email: String,
     pub password: String,
+}
+
+impl Into<Request> for UserRegistrationJson {
+    fn into(self) -> Request {
+        Request::new(self.name, self.email, self.password)
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -48,13 +54,13 @@ impl From<FilteredUser> for FilteredUserJson {
     }
 }
 
-pub(crate) type DynRegistrationService = Arc<dyn RegistrationService + Sync + Send>;
+pub(crate) type DynRegistrationService = Arc<dyn RegistrationCommand + Sync + Send>;
 
-pub async fn register_user_handler(
+pub async fn registration_handler(
     State(service): State<DynRegistrationService>,
-    Json(body): Json<UserRegistration>,
+    Json(body): Json<UserRegistrationJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let builder = match service.register(body.name, body.email, body.password).await {
+    let builder = match service.register(body.into()).await {
         Ok(user) => {
             let v = Json(json!({
                 "status": "success",
@@ -66,33 +72,33 @@ pub async fn register_user_handler(
                 .header(axum::http::header::CONTENT_TYPE, "application/json")
                 .body(body::boxed(v))
         }
-        Err(RegistrationServiceError::InternalError) => Response::builder()
+        Err(RegistrationCommandError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
                     "status": "fail",
-                    "error": format!("{}", RegistrationServiceError::InternalError)
+                    "error": format!("{}", RegistrationCommandError::InternalError)
                 }))
                 .to_string(),
             )),
-        Err(RegistrationServiceError::UserAlreadyExists) => Response::builder()
+        Err(RegistrationCommandError::UserAlreadyExists) => Response::builder()
             .status(StatusCode::CONFLICT)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
                     "status": "fail",
-                    "error": format!("{}", RegistrationServiceError::UserAlreadyExists)
+                    "error": format!("{}", RegistrationCommandError::UserAlreadyExists)
                 }))
                 .to_string(),
             )),
-        Err(RegistrationServiceError::PasswordHash) => Response::builder()
+        Err(RegistrationCommandError::PasswordHash) => Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
                     "status": "fail",
-                    "error": format!("{}", RegistrationServiceError::PasswordHash)
+                    "error": format!("{}", RegistrationCommandError::PasswordHash)
                 }))
                 .to_string(),
             )),

@@ -1,3 +1,3 @@
-pub mod login_service;
-pub mod registration_service;
-pub mod token_verification_service;
+pub mod login_command;
+pub mod registration_command;
+pub mod token_verification_query;

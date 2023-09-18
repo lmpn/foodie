@@ -1,6 +1,6 @@
 use crate::{
-    application::ports::incoming::recipe::update_recipe_service::{
-        Request, UpdateRecipeService, UpdateRecipeServiceError,
+    application::ports::incoming::recipe::update_command::{
+        Request, UpdateCommand, UpdateCommandError,
     },
     error::YaissError,
 };
@@ -26,32 +26,32 @@ impl Into<Request> for UpdateRecipeJson {
     }
 }
 
-pub(crate) type DynUpdateRecipeService = Arc<dyn UpdateRecipeService + Sync + Send>;
+pub(crate) type DynUpdateRecipeService = Arc<dyn UpdateCommand + Sync + Send>;
 pub async fn update_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynUpdateRecipeService>,
-    json: Json<UpdateRecipeJson>,
+    Json(body): Json<UpdateRecipeJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let result = service.update_recipe(json.0.into()).await;
+    let result = service.update(body.into()).await;
     let builder = match result {
         Ok(()) => Response::builder()
             .status(StatusCode::OK)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(BoxBody::default()),
-        Err(UpdateRecipeServiceError::RecipeNotFound) => Response::builder()
+        Err(UpdateCommandError::RecipeNotFound) => Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
-                    "error": format!("{:?}",UpdateRecipeServiceError::RecipeNotFound)
+                    "error": format!("{:?}",UpdateCommandError::RecipeNotFound)
                 }))
                 .to_string(),
             )),
-        Err(UpdateRecipeServiceError::InternalError) => Response::builder()
+        Err(UpdateCommandError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
-                    "error": format!("{:?}",UpdateRecipeServiceError::InternalError)
+                    "error": format!("{:?}",UpdateCommandError::InternalError)
                 }))
                 .to_string(),
             )),

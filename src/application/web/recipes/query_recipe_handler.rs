@@ -1,9 +1,7 @@
 use crate::{
     application::{
         domain::recipe::{ingredient::Ingredient, recipe::Recipe},
-        ports::incoming::recipe::query_recipe_service::{
-            QueryRecipeService, QueryRecipeServiceError,
-        },
+        ports::incoming::recipe::read_partial_query::{ReadPartialError, ReadPartialQuery},
     },
     error::YaissError,
 };
@@ -60,33 +58,33 @@ impl From<Recipe> for RecipeJson {
     }
 }
 
-pub(crate) type DynQueryRecipeService = Arc<dyn QueryRecipeService + Sync + Send>;
+pub(crate) type DynQueryRecipeService = Arc<dyn ReadPartialQuery + Sync + Send>;
 pub async fn query_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynQueryRecipeService>,
     index: axum::extract::Path<uuid::Uuid>,
 ) -> Result<Response<Body>, YaissError> {
-    let builder = match service.clone().query_recipe(index.0).await {
+    let builder = match service.clone().read_recipe(index.0).await {
         Ok(recipe) => Response::builder()
             .status(StatusCode::OK)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!(RecipeJson::from(recipe))).to_string(),
             )),
-        Err(QueryRecipeServiceError::RecipeNotFound) => Response::builder()
+        Err(ReadPartialError::RecipeNotFound) => Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!({
-                    "error": format!("{}", QueryRecipeServiceError::RecipeNotFound)
+                    "error": format!("{}", ReadPartialError::RecipeNotFound)
                 }))
                 .to_string(),
             )),
-        Err(QueryRecipeServiceError::InternalError) => Response::builder()
+        Err(ReadPartialError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!({
-                    "error": format!("{}", QueryRecipeServiceError::InternalError)
+                    "error": format!("{}", ReadPartialError::InternalError)
                 }))
                 .to_string(),
             )),

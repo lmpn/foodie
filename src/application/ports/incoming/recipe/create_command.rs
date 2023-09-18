@@ -31,24 +31,20 @@ impl Request {
 }
 
 #[async_trait]
-pub trait InsertRecipeService {
-    async fn insert_recipe(&self, recipe: Request) -> Result<(), InsertRecipeServiceError>;
+pub trait CreateCommand {
+    async fn insert(&self, recipe: Request) -> Result<(), CreateCommandError>;
 }
 
 #[derive(Debug, PartialEq)]
-pub enum InsertRecipeServiceError {
+pub enum CreateCommandError {
     InternalError,
-    NoIngredients,
 }
 
-impl Display for InsertRecipeServiceError {
+impl Display for CreateCommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InsertRecipeServiceError::InternalError => f.write_str("Internal error"),
-            InsertRecipeServiceError::NoIngredients => {
-                f.write_str("A recipe creation must have ingredients")
-            }
+            CreateCommandError::InternalError => f.write_str("Internal error"),
         }
     }
 }
-impl Error for InsertRecipeServiceError {}
+impl Error for CreateCommandError {}

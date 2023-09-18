@@ -5,7 +5,7 @@ use axum_extra::extract::CookieJar;
 use hyper::{Request, StatusCode};
 use serde::Serialize;
 
-use crate::application::ports::incoming::authorization::token_verification_service::TokenVerificationService;
+use crate::application::ports::incoming::authorization::token_verification_query::TokenVerificationQuery;
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
@@ -13,7 +13,7 @@ pub struct ErrorResponse {
     pub message: String,
 }
 
-pub(crate) type DynTokenVerificationService = Arc<dyn TokenVerificationService + Sync + Send>;
+pub(crate) type DynTokenVerificationService = Arc<dyn TokenVerificationQuery + Sync + Send>;
 
 pub async fn authrorization_middleware<B>(
     cookie_jar: CookieJar,

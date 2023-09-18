@@ -1,18 +1,16 @@
 use crate::application::ports::{
-    incoming::recipe::update_recipe_service::{
-        Request, UpdateRecipeService, UpdateRecipeServiceError,
-    },
+    incoming::recipe::update_command::{Request, UpdateCommand, UpdateCommandError},
     outgoing::recipe::update_recipe_port::{UpdateRecipeError, UpdateRecipePort},
 };
 use async_trait::async_trait;
 use tracing::error;
 
-impl From<UpdateRecipeError> for UpdateRecipeServiceError {
+impl From<UpdateRecipeError> for UpdateCommandError {
     fn from(value: UpdateRecipeError) -> Self {
         error!("{}", value);
         match value {
-            UpdateRecipeError::RecordNotFound => UpdateRecipeServiceError::RecipeNotFound,
-            UpdateRecipeError::InternalError => UpdateRecipeServiceError::InternalError,
+            UpdateRecipeError::RecordNotFound => UpdateCommandError::RecipeNotFound,
+            UpdateRecipeError::InternalError => UpdateCommandError::InternalError,
         }
     }
 }
@@ -25,11 +23,11 @@ where
 }
 
 #[async_trait]
-impl<Storage> UpdateRecipeService for UpdateRecipe<Storage>
+impl<Storage> UpdateCommand for UpdateRecipe<Storage>
 where
     Storage: UpdateRecipePort + Sync + Send,
 {
-    async fn update_recipe(&self, request: Request) -> Result<(), UpdateRecipeServiceError> {
+    async fn update(&self, request: Request) -> Result<(), UpdateCommandError> {
         self.storage
             .update_recipe(
                 request.uuid().to_string().as_str(),

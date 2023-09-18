@@ -8,7 +8,7 @@ use axum_extra::extract::cookie::Cookie;
 use hyper::StatusCode;
 use serde_json::json;
 
-pub async fn logout_user_handler() -> Result<Response<BoxBody>, YaissError> {
+pub async fn logout_handler() -> Result<Response<BoxBody>, YaissError> {
     let cookie = Cookie::build("token", "")
         .path("/")
         .max_age(time::Duration::hours(-1))

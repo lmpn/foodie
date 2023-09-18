@@ -12,23 +12,31 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
-    application::ports::incoming::authorization::login_service::{LoginService, LoginServiceError},
+    application::ports::incoming::authorization::login_command::{
+        LoginCommand, LoginCommandError, Request,
+    },
     error::YaissError,
 };
 
 #[derive(Debug, Deserialize)]
-pub struct UserLogin {
+pub struct UserLoginJson {
     pub email: String,
     pub password: String,
 }
 
-pub(crate) type DynLoginService = Arc<dyn LoginService + Sync + Send>;
+impl Into<Request> for UserLoginJson {
+    fn into(self) -> Request {
+        Request::new(self.email, self.password)
+    }
+}
 
-pub async fn login_user_handler(
+pub(crate) type DynLoginService = Arc<dyn LoginCommand + Sync + Send>;
+
+pub async fn login_handler(
     State(service): State<DynLoginService>,
-    Json(body): Json<UserLogin>,
+    Json(body): Json<UserLoginJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let token = service.login(body.email, body.password).await;
+    let token = service.login(body.into()).await;
     match token {
         Ok((token, maxage)) => {
             let cookie = Cookie::build("token", token.to_owned())
@@ -50,13 +58,13 @@ pub async fn login_user_handler(
                 .map_err(|e| e.into())
         }
         Err(
-            LoginServiceError::TokenEncodingError
-            | LoginServiceError::InternalError
-            | LoginServiceError::PasswordHash,
+            LoginCommandError::TokenEncodingError
+            | LoginCommandError::InternalError
+            | LoginCommandError::PasswordHash,
         ) => {
             let body = Json(json!({
                 "status": "fail",
-                "token": format!("{}", LoginServiceError::InternalError)
+                "token": format!("{}", LoginCommandError::InternalError)
             }))
             .to_string();
             Response::builder()
@@ -65,10 +73,10 @@ pub async fn login_user_handler(
                 .body(body::boxed(body))
                 .map_err(|e| e.into())
         }
-        Err(LoginServiceError::InvalidCredentials) => {
+        Err(LoginCommandError::InvalidCredentials) => {
             let body = Json(json!({
                 "status": "fail",
-                "token": format!("{}", LoginServiceError::InvalidCredentials),
+                "token": format!("{}", LoginCommandError::InvalidCredentials),
             }))
             .to_string();
             Response::builder()

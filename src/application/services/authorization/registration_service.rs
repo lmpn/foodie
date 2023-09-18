@@ -1,8 +1,8 @@
 use crate::application::{
     domain::authorization::{filtered_user::FilteredUser, user::User},
     ports::{
-        incoming::authorization::registration_service::{
-            RegistrationService, RegistrationServiceError,
+        incoming::authorization::registration_command::{
+            RegistrationCommand, RegistrationCommandError, Request,
         },
         outgoing::authorization::insert_user_port::{InsertUserError, InsertUserPort},
     },
@@ -14,31 +14,31 @@ use argon2::{
 use async_trait::async_trait;
 use tracing::error;
 
-impl From<argon2::password_hash::Error> for RegistrationServiceError {
+impl From<argon2::password_hash::Error> for RegistrationCommandError {
     fn from(value: argon2::password_hash::Error) -> Self {
         error!("{}", value);
-        RegistrationServiceError::PasswordHash
+        RegistrationCommandError::PasswordHash
     }
 }
 
-impl From<InsertUserError> for RegistrationServiceError {
+impl From<InsertUserError> for RegistrationCommandError {
     fn from(value: InsertUserError) -> Self {
         error!("{}", value);
         match value {
-            InsertUserError::UserAlreadyExists => RegistrationServiceError::UserAlreadyExists,
-            InsertUserError::InternalError => RegistrationServiceError::InternalError,
+            InsertUserError::UserAlreadyExists => RegistrationCommandError::UserAlreadyExists,
+            InsertUserError::InternalError => RegistrationCommandError::InternalError,
         }
     }
 }
 
-pub struct Registration<Storage>
+pub struct RegistrationService<Storage>
 where
     Storage: InsertUserPort + Send + Sync,
 {
     storage: Storage,
 }
 
-impl<Storage> Registration<Storage>
+impl<Storage> RegistrationService<Storage>
 where
     Storage: InsertUserPort + Send + Sync,
 {
@@ -48,25 +48,20 @@ where
 }
 
 #[async_trait]
-impl<Storage> RegistrationService for Registration<Storage>
+impl<Storage> RegistrationCommand for RegistrationService<Storage>
 where
     Storage: InsertUserPort + Send + Sync,
 {
-    async fn register(
-        &self,
-        name: String,
-        email: String,
-        password: String,
-    ) -> Result<FilteredUser, RegistrationServiceError> {
+    async fn register(&self, request: Request) -> Result<FilteredUser, RegistrationCommandError> {
         let salt = SaltString::generate(&mut OsRng);
         let hashed_password = Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
+            .hash_password(request.password().as_bytes(), &salt)
             .map(|hash| hash.to_string())?;
 
         let user = User::new(
             uuid::Uuid::new_v4(),
-            name,
-            email,
+            request.name().to_string(),
+            request.email().to_string(),
             hashed_password,
             "user".to_string(),
             "default.png".to_string(),

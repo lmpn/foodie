@@ -1,7 +1,7 @@
 use crate::application::{
     domain::authorization::token_claims::TokenClaims,
     ports::{
-        incoming::authorization::login_service::{LoginService, LoginServiceError},
+        incoming::authorization::login_command::{LoginCommand, LoginCommandError, Request},
         outgoing::authorization::query_user_by_email_port::{
             QueryUserByEmailError, QueryUserByEmailPort,
         },
@@ -12,31 +12,31 @@ use async_trait::async_trait;
 use jsonwebtoken::{EncodingKey, Header};
 use tracing::error;
 
-impl From<QueryUserByEmailError> for LoginServiceError {
+impl From<QueryUserByEmailError> for LoginCommandError {
     fn from(value: QueryUserByEmailError) -> Self {
         error!("{}", value);
         match value {
-            QueryUserByEmailError::UserNotFound => LoginServiceError::InvalidCredentials,
-            QueryUserByEmailError::InternalError => LoginServiceError::InternalError,
+            QueryUserByEmailError::UserNotFound => LoginCommandError::InvalidCredentials,
+            QueryUserByEmailError::InternalError => LoginCommandError::InternalError,
         }
     }
 }
 
-impl From<argon2::password_hash::Error> for LoginServiceError {
+impl From<argon2::password_hash::Error> for LoginCommandError {
     fn from(value: argon2::password_hash::Error) -> Self {
         error!("{}", value);
-        LoginServiceError::InvalidCredentials
+        LoginCommandError::InvalidCredentials
     }
 }
 
-impl From<jsonwebtoken::errors::Error> for LoginServiceError {
+impl From<jsonwebtoken::errors::Error> for LoginCommandError {
     fn from(value: jsonwebtoken::errors::Error) -> Self {
         error!("{:?}:{}", value.kind(), value);
-        LoginServiceError::TokenEncodingError
+        LoginCommandError::TokenEncodingError
     }
 }
 
-pub struct Login<Storage>
+pub struct LoginService<Storage>
 where
     Storage: QueryUserByEmailPort + Send + Sync,
 {
@@ -45,7 +45,7 @@ where
     maxage: i64,
 }
 
-impl<Storage> Login<Storage>
+impl<Storage> LoginService<Storage>
 where
     Storage: QueryUserByEmailPort + Send + Sync,
 {
@@ -59,19 +59,15 @@ where
 }
 
 #[async_trait]
-impl<Storage> LoginService for Login<Storage>
+impl<Storage> LoginCommand for LoginService<Storage>
 where
     Storage: QueryUserByEmailPort + Send + Sync,
 {
-    async fn login(
-        &self,
-        email: String,
-        password: String,
-    ) -> Result<(String, i64), LoginServiceError> {
-        let user = self.storage.query_user_by_email(email).await?;
+    async fn login(&self, request: Request) -> Result<(String, i64), LoginCommandError> {
+        let user = self.storage.query_user_by_email(request.email()).await?;
         PasswordHash::new(user.password()).map(|parsed_hash| {
             Argon2::default()
-                .verify_password(password.as_bytes(), &parsed_hash)
+                .verify_password(request.password().as_bytes(), &parsed_hash)
                 .map_or(false, |_| true)
         })?;
         let token = TokenClaims::new(user.id().to_string(), self.maxage);

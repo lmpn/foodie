@@ -1,4 +1,4 @@
-pub mod delete_recipe_service;
-pub mod insert_recipe_service;
-pub mod query_recipe_service;
-pub mod update_recipe_service;
+pub mod create_command;
+pub mod delete_command;
+pub mod read_partial_query;
+pub mod update_command;

@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use futures::TryFutureExt;
-use sqlx::{QueryBuilder, SqlitePool};
+use sqlx::SqlitePool;
 use tracing::info;
 use uuid::Uuid;
 
@@ -51,6 +50,12 @@ impl From<sqlx::Error> for InsertRecipeError {
 #[derive(Clone)]
 pub struct RecipeSqliteDS {
     pool: SqlitePool,
+}
+
+impl RecipeSqliteDS {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -137,10 +142,8 @@ impl QueryRecipePort for RecipeSqliteDS {
 
 #[async_trait]
 impl DeleteRecipePort for RecipeSqliteDS {
-    async fn delete_recipe(&self, uuid: Uuid) -> Result<(), DeleteRecipeError> {
-        let mut builder = QueryBuilder::new("DELETE FROM recipe WHERE uuid = ");
-        let query = builder.push_bind(uuid.to_string()).build();
-        query
+    async fn delete_recipe(&self, uuid: &str) -> Result<(), DeleteRecipeError> {
+        sqlx::query!("DELETE FROM recipe WHERE uuid = ?", uuid)
             .execute(&self.pool)
             .await
             .map(|_v| ())
