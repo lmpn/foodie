@@ -1,10 +1,9 @@
 use async_trait::async_trait;
 use sqlx::SqlitePool;
 use tracing::info;
-use uuid::Uuid;
 
 use crate::application::{
-    domain::recipe::{ingredient::Ingredient, recipe::Recipe},
+    domain::recipe::recipe::Recipe,
     ports::outgoing::recipe::{
         delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
         insert_recipe_port::{InsertRecipeError, InsertRecipePort},
@@ -47,6 +46,26 @@ impl From<sqlx::Error> for InsertRecipeError {
     }
 }
 
+#[derive(Debug, sqlx::FromRow, Clone)]
+struct RecipeRecord {
+    pub uuid: String,
+    pub name: String,
+    pub image: String,
+    pub method: String,
+}
+
+impl Into<Recipe> for RecipeRecord {
+    fn into(self) -> Recipe {
+        Recipe::new(
+            uuid::Uuid::parse_str(&self.uuid).unwrap_or(uuid::Uuid::default()),
+            self.name,
+            self.image,
+            self.method,
+            vec![],
+        )
+    }
+}
+
 #[derive(Clone)]
 pub struct RecipeSqliteDS {
     pool: SqlitePool,
@@ -67,9 +86,8 @@ impl UpdateRecipePort for RecipeSqliteDS {
         image: &str,
         method: &str,
     ) -> Result<(), UpdateRecipeError> {
-        let transaction = self.pool.begin().await?;
-        let result = sqlx::query!(
-            r#" UPDATE recipe SET name = ?, method = ?, image = ?  WHERE uuid = ?  "#,
+        sqlx::query!(
+            r#" UPDATE recipe SET name = ?, method = ?, image = ?  WHERE uuid = ?"#,
             name,
             method,
             image,
@@ -78,13 +96,7 @@ impl UpdateRecipePort for RecipeSqliteDS {
         .execute(&self.pool)
         .await
         .map(|_e| ())
-        .map_err(|e| e.into());
-        if result.is_err() {
-            transaction.rollback().await?;
-            return result;
-        }
-        transaction.commit().await?;
-        Ok(())
+        .map_err(Into::into)
     }
 }
 
@@ -92,51 +104,15 @@ impl UpdateRecipePort for RecipeSqliteDS {
 impl QueryRecipePort for RecipeSqliteDS {
     async fn query_recipe(&self, uuid: uuid::Uuid) -> Result<Recipe, QueryRecipeError> {
         let uuid = uuid.to_string();
-        let result = sqlx::query!(
-            r#"SELECT recipe.uuid as ruuid, recipe.name as rname, recipe.method, recipe.image, ingredient.uuid, ingredient.name, ingredient.unit, ingredient.amount FROM recipe 
-            JOIN recipe_ingredient ON recipe.uuid = recipe_uuid
-            JOIN ingredient ON ingredient.uuid = ingredient_uuid 
-            WHERE recipe.uuid = ?"#,
+        sqlx::query_as!(
+            RecipeRecord,
+            r#"SELECT * FROM recipe WHERE recipe.uuid = ?"#,
             uuid
         )
-        .fetch_all(&self.pool)
+        .fetch_one(&self.pool)
         .await
-        .map_err(|e| e.into());
-        if result.is_err() {
-            return Err(result.unwrap_err());
-        }
-
-        let records = result.unwrap();
-        if records.is_empty() {
-            return Err(QueryRecipeError::RecordNotFound);
-        }
-
-        let ingredient = records
-            .iter()
-            .map(|record| {
-                Ingredient::new(
-                    Uuid::parse_str(record.uuid.as_ref().unwrap().as_str()).unwrap(),
-                    record.name.clone(),
-                    record.amount,
-                    record.unit.clone(),
-                )
-            })
-            .collect::<Vec<Ingredient>>();
-        let row = records.get(0).unwrap();
-        let recipe = Recipe::new(
-            Uuid::parse_str(
-                row.ruuid
-                    .as_ref()
-                    .ok_or(QueryRecipeError::InternalError)?
-                    .as_str(),
-            )
-            .map_err(|_e| QueryRecipeError::InternalError)?,
-            row.rname.clone(),
-            row.image.clone().unwrap_or(String::new()),
-            row.method.clone().unwrap_or(String::new()),
-            ingredient,
-        );
-        Ok(recipe)
+        .map(Into::into)
+        .map_err(Into::into)
     }
 }
 

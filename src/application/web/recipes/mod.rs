@@ -26,14 +26,16 @@ use crate::{
 
 use self::{
     create_recipe_handler::DynCreateRecipeService, delete_recipe_handler::DynDeleteRecipesService,
-    query_recipe_handler::DynQueryRecipeService, update_recipe_handler::DynUpdateRecipeService,
+    read_recipe_handler::DynQueryRecipeService, update_recipe_handler::DynUpdateRecipeService,
 };
 
 use super::middleware::authorization::{authrorization_middleware, DynTokenVerificationService};
 
+pub mod add_ingredient_handler;
 pub mod create_recipe_handler;
+pub mod delete_ingredient_handler;
 pub mod delete_recipe_handler;
-pub mod query_recipe_handler;
+pub mod read_recipe_handler;
 pub mod update_recipe_handler;
 
 pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
@@ -63,7 +65,7 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         .with_state(delete_recipe_service)
         .route(
             "/:identifier",
-            get(query_recipe_handler::query_recipe_handler),
+            get(read_recipe_handler::read_recipe_handler),
         )
         .with_state(query_recipe_service.clone())
         .route("/", post(create_recipe_handler::insert_recipe_handler))
