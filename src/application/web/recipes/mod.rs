@@ -43,6 +43,7 @@ pub mod add_ingredient_handler;
 pub mod create_recipe_handler;
 pub mod delete_ingredient_handler;
 pub mod delete_recipe_handler;
+pub mod read_ingredient_page_handler;
 pub mod read_recipe_handler;
 pub mod update_ingredient_handler;
 pub mod update_recipe_handler;

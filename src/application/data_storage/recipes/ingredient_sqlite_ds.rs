@@ -7,7 +7,7 @@ use crate::application::{
     ports::outgoing::recipe::{
         add_ingredient_port::{AddIngredientError, AddIngredientPort},
         delete_ingredient_port::{DeleteIngredientError, DeleteIngredientPort},
-        query_recipe_ingredients_port::{QueryRecipeIngredientPort, QueryRecipeIngredientsError},
+        query_ingredients_port::{QueryIngredientsError, QueryIngredientsPort},
         update_ingredient_port::{UpdateIngredientError, UpdateIngredientPort},
     },
 };
@@ -32,12 +32,12 @@ impl From<sqlx::Error> for DeleteIngredientError {
     }
 }
 
-impl From<sqlx::Error> for QueryRecipeIngredientsError {
+impl From<sqlx::Error> for QueryIngredientsError {
     fn from(value: sqlx::Error) -> Self {
         error!("{}", value);
         match value {
-            sqlx::Error::RowNotFound => QueryRecipeIngredientsError::RecipeNotFound,
-            _ => QueryRecipeIngredientsError::InternalError,
+            sqlx::Error::RowNotFound => QueryIngredientsError::RecipeNotFound,
+            _ => QueryIngredientsError::InternalError,
         }
     }
 }
@@ -134,14 +134,13 @@ impl DeleteIngredientPort for IngredientSqliteDS {
 }
 
 #[async_trait]
-impl QueryRecipeIngredientPort for IngredientSqliteDS {
-    async fn query_recipe_ingredients(
+impl QueryIngredientsPort for IngredientSqliteDS {
+    async fn query_ingredients(
         &self,
-        recipe_uuid: uuid::Uuid,
+        recipe_uuid: &str,
         count: i64,
         offset: i64,
-    ) -> Result<Vec<Ingredient>, QueryRecipeIngredientsError> {
-        let recipe_uuid = recipe_uuid.to_string();
+    ) -> Result<Vec<Ingredient>, QueryIngredientsError> {
         sqlx::query_as!(
             IngredientRecord,
             r#"SELECT uuid, name, amount, unit FROM ingredient WHERE recipe_uuid = ? LIMIT ? OFFSET ?"#,
