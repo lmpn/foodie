@@ -1,7 +1,7 @@
 use crate::{
     application::{
         domain::recipe::recipe::Recipe,
-        ports::incoming::recipe::read_partial_query::{ReadPartialError, ReadPartialQuery},
+        ports::incoming::recipe::recipe_query::{RecipeQuery, RecipeQueryError},
     },
     error::YaissError,
 };
@@ -33,33 +33,33 @@ impl From<Recipe> for RecipeJson {
     }
 }
 
-pub(crate) type DynQueryRecipeService = Arc<dyn ReadPartialQuery + Sync + Send>;
+pub(crate) type DynQueryRecipeService = Arc<dyn RecipeQuery + Sync + Send>;
 pub async fn read_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynQueryRecipeService>,
     index: axum::extract::Path<uuid::Uuid>,
 ) -> Result<Response<Body>, YaissError> {
-    let builder = match service.clone().read_recipe(index.0).await {
+    let builder = match service.clone().recipe_query(index.0).await {
         Ok(recipe) => Response::builder()
             .status(StatusCode::OK)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!(RecipeJson::from(recipe))).to_string(),
             )),
-        Err(ReadPartialError::RecipeNotFound) => Response::builder()
+        Err(RecipeQueryError::RecipeNotFound) => Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!({
-                    "error": format!("{}", ReadPartialError::RecipeNotFound)
+                    "error": format!("{}", RecipeQueryError::RecipeNotFound)
                 }))
                 .to_string(),
             )),
-        Err(ReadPartialError::InternalError) => Response::builder()
+        Err(RecipeQueryError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!({
-                    "error": format!("{}", ReadPartialError::InternalError)
+                    "error": format!("{}", RecipeQueryError::InternalError)
                 }))
                 .to_string(),
             )),

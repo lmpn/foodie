@@ -1,27 +1,20 @@
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct Request {
-    uuid: uuid::Uuid,
     name: String,
     image: String,
     method: String,
 }
 
 impl Request {
-    pub fn new(uuid: uuid::Uuid, name: String, image: String, method: String) -> Self {
+    pub fn new(name: String, image: String, method: String) -> Self {
         Self {
-            uuid,
             name,
             image,
             method,
         }
-    }
-
-    pub fn uuid(&self) -> Uuid {
-        self.uuid
     }
 
     pub fn name(&self) -> &str {
@@ -38,22 +31,20 @@ impl Request {
 }
 
 #[async_trait]
-pub trait UpdateCommand {
-    async fn update(&self, request: Request) -> Result<(), UpdateCommandError>;
+pub trait CreateRecipeCommand {
+    async fn create_recipe(&self, recipe: Request) -> Result<(), CreateRecipeCommandError>;
 }
 
 #[derive(Debug, PartialEq)]
-pub enum UpdateCommandError {
+pub enum CreateRecipeCommandError {
     InternalError,
-    RecipeNotFound,
 }
 
-impl Display for UpdateCommandError {
+impl Display for CreateRecipeCommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UpdateCommandError::InternalError => f.write_str("Internal error"),
-            UpdateCommandError::RecipeNotFound => f.write_str("Recipe not found"),
+            CreateRecipeCommandError::InternalError => f.write_str("Internal error"),
         }
     }
 }
-impl Error for UpdateCommandError {}
+impl Error for CreateRecipeCommandError {}

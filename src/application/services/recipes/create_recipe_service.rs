@@ -2,15 +2,17 @@ use async_trait::async_trait;
 use tracing::error;
 
 use crate::application::ports::{
-    incoming::recipe::create_command::{CreateCommand, CreateCommandError, Request},
+    incoming::recipe::create_recipe_command::{
+        CreateRecipeCommand, CreateRecipeCommandError, Request,
+    },
     outgoing::recipe::insert_recipe_port::{InsertRecipeError, InsertRecipePort},
 };
 
-impl From<InsertRecipeError> for CreateCommandError {
+impl From<InsertRecipeError> for CreateRecipeCommandError {
     fn from(value: InsertRecipeError) -> Self {
         error!("{}", value);
         match value {
-            InsertRecipeError::InternalError => CreateCommandError::InternalError,
+            InsertRecipeError::InternalError => CreateRecipeCommandError::InternalError,
         }
     }
 }
@@ -23,11 +25,11 @@ where
 }
 
 #[async_trait]
-impl<Storage> CreateCommand for CreateRecipe<Storage>
+impl<Storage> CreateRecipeCommand for CreateRecipe<Storage>
 where
     Storage: InsertRecipePort + Sync + Send,
 {
-    async fn insert(&self, request: Request) -> Result<(), CreateCommandError> {
+    async fn create_recipe(&self, request: Request) -> Result<(), CreateRecipeCommandError> {
         match self
             .storage
             .insert_recipe(
@@ -39,7 +41,7 @@ where
             .await
         {
             Ok(()) => Ok(()),
-            Err(InsertRecipeError::InternalError) => Err(CreateCommandError::InternalError),
+            Err(InsertRecipeError::InternalError) => Err(CreateRecipeCommandError::InternalError),
         }
     }
 }

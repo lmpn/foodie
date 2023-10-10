@@ -1,6 +1,6 @@
 use crate::{
-    application::ports::incoming::recipe::create_command::{
-        CreateCommand, CreateCommandError, Request,
+    application::ports::incoming::recipe::create_recipe_command::{
+        CreateRecipeCommand, CreateRecipeCommandError, Request,
     },
     error::YaissError,
 };
@@ -26,12 +26,12 @@ impl Into<Request> for InsertRecipeJson {
     }
 }
 
-pub(crate) type DynCreateRecipeService = Arc<dyn CreateCommand + Sync + Send>;
+pub(crate) type DynCreateRecipeService = Arc<dyn CreateRecipeCommand + Sync + Send>;
 pub async fn insert_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynCreateRecipeService>,
     Json(body): Json<InsertRecipeJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let result = service.insert(body.into()).await;
+    let result = service.create_recipe(body.into()).await;
     match result {
         Ok(()) => {
             let builder = Response::builder()
@@ -39,13 +39,13 @@ pub async fn insert_recipe_handler(
                 .body(body::boxed(BoxBody::default()));
             builder.map_err(|e| e.into())
         }
-        Err(CreateCommandError::InternalError) => {
+        Err(CreateRecipeCommandError::InternalError) => {
             let builder = Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .header(axum::http::header::CONTENT_TYPE, "application/json")
                 .body(body::boxed(
                     Json(json!({
-                        "error": format!("{:?}", CreateCommandError::InternalError),
+                        "error": format!("{:?}", CreateRecipeCommandError::InternalError),
                     }))
                     .to_string(),
                 ));

@@ -2,16 +2,16 @@ use async_trait::async_trait;
 use tracing::error;
 
 use crate::application::ports::{
-    incoming::recipe::delete_command::{DeleteCommand, DeleteCommandError},
+    incoming::recipe::delete_recipe_command::{DeleteRecipeCommand, DeleteRecipeCommandError},
     outgoing::recipe::delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
 };
 
-impl From<DeleteRecipeError> for DeleteCommandError {
+impl From<DeleteRecipeError> for DeleteRecipeCommandError {
     fn from(value: DeleteRecipeError) -> Self {
         error!("{}", value);
         match value {
-            DeleteRecipeError::InternalError => DeleteCommandError::InternalError,
-            DeleteRecipeError::RecordNotFound => DeleteCommandError::RecipeNotFound,
+            DeleteRecipeError::InternalError => DeleteRecipeCommandError::InternalError,
+            DeleteRecipeError::RecordNotFound => DeleteRecipeCommandError::RecipeNotFound,
         }
     }
 }
@@ -24,14 +24,14 @@ where
 }
 
 #[async_trait]
-impl<Storage> DeleteCommand for DeleteRecipe<Storage>
+impl<Storage> DeleteRecipeCommand for DeleteRecipe<Storage>
 where
     Storage: DeleteRecipePort + Send + Sync,
 {
-    async fn delete(&self, uuid: uuid::Uuid) -> Result<(), DeleteCommandError> {
+    async fn delete_recipe(&self, uuid: uuid::Uuid) -> Result<(), DeleteRecipeCommandError> {
         match self.storage.delete_recipe(uuid.to_string().as_str()).await {
-            Err(DeleteRecipeError::RecordNotFound) => Err(DeleteCommandError::RecipeNotFound),
-            Err(DeleteRecipeError::InternalError) => Err(DeleteCommandError::InternalError),
+            Err(DeleteRecipeError::RecordNotFound) => Err(DeleteRecipeCommandError::RecipeNotFound),
+            Err(DeleteRecipeError::InternalError) => Err(DeleteRecipeCommandError::InternalError),
             _ => Ok(()),
         }
     }

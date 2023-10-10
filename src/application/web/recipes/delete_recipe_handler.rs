@@ -1,5 +1,7 @@
 use crate::{
-    application::ports::incoming::recipe::delete_command::{DeleteCommand, DeleteCommandError},
+    application::ports::incoming::recipe::delete_recipe_command::{
+        DeleteRecipeCommand, DeleteRecipeCommandError,
+    },
     error::YaissError,
 };
 use axum::{
@@ -11,32 +13,32 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
-pub(crate) type DynDeleteRecipesService = Arc<dyn DeleteCommand + Send + Sync>;
+pub(crate) type DynDeleteRecipesService = Arc<dyn DeleteRecipeCommand + Send + Sync>;
 
 pub async fn delete_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynDeleteRecipesService>,
     identifier: axum::extract::Path<Uuid>,
 ) -> Result<Response<BoxBody>, YaissError> {
-    let builder = match service.delete(identifier.0).await {
+    let builder = match service.delete_recipe(identifier.0).await {
         Ok(()) => Response::builder()
             .status(StatusCode::OK)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(BoxBody::default()),
-        Err(DeleteCommandError::InternalError) => Response::builder()
+        Err(DeleteRecipeCommandError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
-                    "error": format!("{}", DeleteCommandError::InternalError)
+                    "error": format!("{}", DeleteRecipeCommandError::InternalError)
                 }))
                 .to_string(),
             )),
-        Err(DeleteCommandError::RecipeNotFound) => Response::builder()
+        Err(DeleteRecipeCommandError::RecipeNotFound) => Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::boxed(
                 Json(json!({
-                    "error": format!("{}", DeleteCommandError::RecipeNotFound)
+                    "error": format!("{}", DeleteRecipeCommandError::RecipeNotFound)
                 }))
                 .to_string(),
             )),

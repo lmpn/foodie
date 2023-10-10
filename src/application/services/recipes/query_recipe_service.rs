@@ -1,19 +1,19 @@
 use crate::application::{
     domain::recipe::recipe::Recipe,
     ports::{
-        incoming::recipe::read_partial_query::{ReadPartialError, ReadPartialQuery},
+        incoming::recipe::recipe_query::{RecipeQuery, RecipeQueryError},
         outgoing::recipe::query_recipe_port::{QueryRecipeError, QueryRecipePort},
     },
 };
 use async_trait::async_trait;
 use tracing::error;
 
-impl From<QueryRecipeError> for ReadPartialError {
+impl From<QueryRecipeError> for RecipeQueryError {
     fn from(value: QueryRecipeError) -> Self {
         error!("{}", value);
         match value {
-            QueryRecipeError::RecordNotFound => ReadPartialError::RecipeNotFound,
-            QueryRecipeError::InternalError => ReadPartialError::InternalError,
+            QueryRecipeError::RecordNotFound => RecipeQueryError::RecipeNotFound,
+            QueryRecipeError::InternalError => RecipeQueryError::InternalError,
         }
     }
 }
@@ -26,11 +26,11 @@ where
 }
 
 #[async_trait]
-impl<Storage> ReadPartialQuery for QueryRecipe<Storage>
+impl<Storage> RecipeQuery for QueryRecipe<Storage>
 where
     Storage: QueryRecipePort + Send + Sync,
 {
-    async fn read_recipe(&self, uuid: uuid::Uuid) -> Result<Recipe, ReadPartialError> {
+    async fn recipe_query(&self, uuid: uuid::Uuid) -> Result<Recipe, RecipeQueryError> {
         self.storage
             .query_recipe(uuid)
             .await
