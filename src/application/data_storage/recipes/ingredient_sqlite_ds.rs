@@ -3,10 +3,12 @@ use sqlx::SqlitePool;
 use tracing::error;
 
 use crate::application::{
-    domain::recipe::{ingredient::Ingredient, recipe::Recipe},
+    domain::recipe::ingredient::Ingredient,
     ports::outgoing::recipe::{
         add_ingredient_port::{AddIngredientError, AddIngredientPort},
         delete_ingredient_port::{DeleteIngredientError, DeleteIngredientPort},
+        query_recipe_ingredients_port::{QueryRecipeIngredientPort, QueryRecipeIngredientsError},
+        update_ingredient_port::{UpdateIngredientError, UpdateIngredientPort},
     },
 };
 
@@ -30,22 +32,40 @@ impl From<sqlx::Error> for DeleteIngredientError {
     }
 }
 
+impl From<sqlx::Error> for QueryRecipeIngredientsError {
+    fn from(value: sqlx::Error) -> Self {
+        error!("{}", value);
+        match value {
+            sqlx::Error::RowNotFound => QueryRecipeIngredientsError::RecipeNotFound,
+            _ => QueryRecipeIngredientsError::InternalError,
+        }
+    }
+}
+
+impl From<sqlx::Error> for UpdateIngredientError {
+    fn from(value: sqlx::Error) -> Self {
+        error!("{}", value);
+        match value {
+            sqlx::Error::RowNotFound => UpdateIngredientError::RecordNotFound,
+            _ => UpdateIngredientError::InternalError,
+        }
+    }
+}
 #[derive(Debug, sqlx::FromRow, Clone)]
 struct IngredientRecord {
     pub uuid: String,
     pub name: String,
-    pub image: String,
-    pub method: String,
+    pub amount: f64,
+    pub unit: String,
 }
 
-impl Into<Recipe> for IngredientRecord {
-    fn into(self) -> Recipe {
-        Recipe::new(
+impl Into<Ingredient> for IngredientRecord {
+    fn into(self) -> Ingredient {
+        Ingredient::new(
             uuid::Uuid::parse_str(&self.uuid).unwrap_or(uuid::Uuid::default()),
             self.name,
-            self.image,
-            self.method,
-            vec![],
+            self.amount,
+            self.unit,
         )
     }
 }
@@ -105,6 +125,55 @@ impl DeleteIngredientPort for IngredientSqliteDS {
             r#" DELETE FROM ingredient WHERE uuid = ? AND recipe_uuid = ?"#,
             ingredient_uuid,
             recipe_uuid
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_e| ())
+        .map_err(Into::into)
+    }
+}
+
+#[async_trait]
+impl QueryRecipeIngredientPort for IngredientSqliteDS {
+    async fn query_recipe_ingredients(
+        &self,
+        recipe_uuid: uuid::Uuid,
+        count: i64,
+        offset: i64,
+    ) -> Result<Vec<Ingredient>, QueryRecipeIngredientsError> {
+        let recipe_uuid = recipe_uuid.to_string();
+        sqlx::query_as!(
+            IngredientRecord,
+            r#"SELECT uuid, name, amount, unit FROM ingredient WHERE recipe_uuid = ? LIMIT ? OFFSET ?"#,
+            recipe_uuid,
+            count,
+            offset
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|e| e.into_iter().map(Into::into).collect())
+        .map_err(Into::into)
+    }
+}
+
+#[async_trait]
+impl UpdateIngredientPort for IngredientSqliteDS {
+    async fn update_ingredient(
+        &self,
+        uuid: &str,
+        name: &str,
+        amount: f64,
+        unit: &str,
+        recipe_uuid: &str,
+    ) -> Result<(), UpdateIngredientError> {
+        let recipe_uuid = recipe_uuid.to_string();
+        sqlx::query!(
+            r#"UPDATE ingredient SET name = ?, amount = ?, unit = ?  WHERE uuid = ? AND recipe_uuid = ?"#,
+            name,
+            amount,
+        unit,
+        uuid,
+            recipe_uuid,
         )
         .execute(&self.pool)
         .await

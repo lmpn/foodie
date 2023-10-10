@@ -20,7 +20,8 @@ use crate::{
             recipes::{
                 add_ingredient_service::AddIngredient, create_recipe_service::CreateRecipe,
                 delete_ingredient_service::DeleteIngredient, delete_recipe_service::DeleteRecipe,
-                query_recipe_service::QueryRecipe, update_recipe_service::UpdateRecipe,
+                query_recipe_service::QueryRecipe, update_ingredient_service::UpdateIngredient,
+                update_recipe_service::UpdateRecipe,
             },
         },
     },
@@ -32,6 +33,7 @@ use self::{
     add_ingredient_handler::DynAddIngredientService, create_recipe_handler::DynCreateRecipeService,
     delete_ingredient_handler::DynDeleteIngredientService,
     delete_recipe_handler::DynDeleteRecipesService, read_recipe_handler::DynQueryRecipeService,
+    update_ingredient_handler::DynUpdateIngredientService,
     update_recipe_handler::DynUpdateRecipeService,
 };
 
@@ -42,6 +44,7 @@ pub mod create_recipe_handler;
 pub mod delete_ingredient_handler;
 pub mod delete_recipe_handler;
 pub mod read_recipe_handler;
+pub mod update_ingredient_handler;
 pub mod update_recipe_handler;
 
 pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
@@ -65,7 +68,14 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         Arc::new(AddIngredient::new(ingredient_storage.clone())) as DynAddIngredientService;
     let delete_ingredient_service =
         Arc::new(DeleteIngredient::new(ingredient_storage.clone())) as DynDeleteIngredientService;
+    let update_ingredient_service =
+        Arc::new(UpdateIngredient::new(ingredient_storage.clone())) as DynUpdateIngredientService;
     let ingredients_routes = Router::new()
+        .route(
+            "/ingredients/:ingredient_identifier",
+            put(update_ingredient_handler::update_ingredient_handler),
+        )
+        .with_state(update_ingredient_service)
         .route(
             "/ingredients/:ingredient_identifier",
             delete(delete_ingredient_handler::delete_ingredient_handler),
