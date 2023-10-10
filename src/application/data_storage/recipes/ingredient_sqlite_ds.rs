@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use futures::TryFutureExt;
 use sqlx::SqlitePool;
 use tracing::error;
 
@@ -7,7 +6,7 @@ use crate::application::{
     domain::recipe::{ingredient::Ingredient, recipe::Recipe},
     ports::outgoing::recipe::{
         add_ingredient_port::{AddIngredientError, AddIngredientPort},
-        remove_ingredient_port::{RemoveIngredientError, RemoveIngredientPort},
+        delete_ingredient_port::{DeleteIngredientError, DeleteIngredientPort},
     },
 };
 
@@ -21,12 +20,12 @@ impl From<sqlx::Error> for AddIngredientError {
     }
 }
 
-impl From<sqlx::Error> for RemoveIngredientError {
+impl From<sqlx::Error> for DeleteIngredientError {
     fn from(value: sqlx::Error) -> Self {
         error!("{}", value);
         match value {
-            sqlx::Error::RowNotFound => RemoveIngredientError::RecordNotFound,
-            _ => RemoveIngredientError::InternalError,
+            sqlx::Error::RowNotFound => DeleteIngredientError::RecordNotFound,
+            _ => DeleteIngredientError::InternalError,
         }
     }
 }
@@ -75,21 +74,14 @@ impl AddIngredientPort for IngredientSqliteDS {
         let amount = ingredient.amount();
         let transaction = self.pool.begin().await.unwrap();
         let result: Result<(), AddIngredientError> = sqlx::query!(
-            r#" INSERT INTO ingredient (uuid, name, amount, unit) VALUES (?,?,?,?)"#,
+            r#" INSERT INTO ingredient (uuid, name, amount, unit, recipe_uuid) VALUES (?,?,?,?,?)"#,
             uuid,
             name,
             amount,
             unit,
+            recipe_uuid
         )
         .execute(&self.pool)
-        .and_then(|_| {
-            sqlx::query!(
-                r#" INSERT INTO recipe_ingredient (recipe_uuid, ingredient_uuid) VALUES (?,?)"#,
-                recipe_uuid,
-                uuid
-            )
-            .execute(&self.pool)
-        })
         .await
         .map(|_| ())
         .map_err(Into::into);
@@ -103,12 +95,20 @@ impl AddIngredientPort for IngredientSqliteDS {
 }
 
 #[async_trait]
-impl RemoveIngredientPort for IngredientSqliteDS {
-    async fn remove_ingredient(&self, uuid: &str) -> Result<(), RemoveIngredientError> {
-        sqlx::query!(r#" DELETE FROM ingredient WHERE uuid = ?"#, uuid)
-            .execute(&self.pool)
-            .await
-            .map(|_e| ())
-            .map_err(Into::into)
+impl DeleteIngredientPort for IngredientSqliteDS {
+    async fn delete_ingredient(
+        &self,
+        recipe_uuid: &str,
+        ingredient_uuid: &str,
+    ) -> Result<(), DeleteIngredientError> {
+        sqlx::query!(
+            r#" DELETE FROM ingredient WHERE uuid = ? AND recipe_uuid = ?"#,
+            ingredient_uuid,
+            recipe_uuid
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_e| ())
+        .map_err(Into::into)
     }
 }

@@ -4,5 +4,8 @@ CREATE TABLE IF NOT EXISTS ingredient (
     name VARCHAR(255) NOT NULL,
     amount DOUBLE NOT NULL,
     unit VARCHAR(10) NOT NULL,
+    recipe_uuid VARCHAR(16),
+    CONSTRAINT ingredient_recipe foreign key (recipe_uuid) references recipe,
+    CONSTRAINT fk_recipe foreign key (recipe_uuid) references recipe(uuid) on delete cascade,
     CONSTRAINT ingredient_unique unique (uuid)
 );

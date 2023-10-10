@@ -10,12 +10,16 @@ use axum::{
 use crate::{
     application::{
         data_storage::{
-            authorization::user_sqlite_ds::UserSqliteDS, recipes::recipes_sqlite_ds::RecipeSqliteDS,
+            authorization::user_sqlite_ds::UserSqliteDS,
+            recipes::{
+                ingredient_sqlite_ds::IngredientSqliteDS, recipes_sqlite_ds::RecipeSqliteDS,
+            },
         },
         services::{
             authorization::token_verification_service::TokenVerificationService,
             recipes::{
-                create_recipe_service::CreateRecipe, delete_recipe_service::DeleteRecipe,
+                add_ingredient_service::AddIngredient, create_recipe_service::CreateRecipe,
+                delete_ingredient_service::DeleteIngredient, delete_recipe_service::DeleteRecipe,
                 query_recipe_service::QueryRecipe, update_recipe_service::UpdateRecipe,
             },
         },
@@ -25,8 +29,10 @@ use crate::{
 };
 
 use self::{
-    create_recipe_handler::DynCreateRecipeService, delete_recipe_handler::DynDeleteRecipesService,
-    read_recipe_handler::DynQueryRecipeService, update_recipe_handler::DynUpdateRecipeService,
+    add_ingredient_handler::DynAddIngredientService, create_recipe_handler::DynCreateRecipeService,
+    delete_ingredient_handler::DynDeleteIngredientService,
+    delete_recipe_handler::DynDeleteRecipesService, read_recipe_handler::DynQueryRecipeService,
+    update_recipe_handler::DynUpdateRecipeService,
 };
 
 use super::middleware::authorization::{authrorization_middleware, DynTokenVerificationService};
@@ -41,6 +47,7 @@ pub mod update_recipe_handler;
 pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
     let recipe_storage = RecipeSqliteDS::new(state.pool());
     let user_storage = UserSqliteDS::new(state.pool());
+    let ingredient_storage = IngredientSqliteDS::new(state.pool());
     let token_verification_service = Arc::new(TokenVerificationService::new(
         user_storage.clone(),
         configuration.jwt_secret().to_string(),
@@ -54,7 +61,21 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         Arc::new(CreateRecipe::new(recipe_storage.clone())) as DynCreateRecipeService;
     let update_recipe_service =
         Arc::new(UpdateRecipe::new(recipe_storage.clone())) as DynUpdateRecipeService;
-
+    let add_ingredient_service =
+        Arc::new(AddIngredient::new(ingredient_storage.clone())) as DynAddIngredientService;
+    let delete_ingredient_service =
+        Arc::new(DeleteIngredient::new(ingredient_storage.clone())) as DynDeleteIngredientService;
+    let ingredients_routes = Router::new()
+        .route(
+            "/ingredients/:ingredient_identifier",
+            delete(delete_ingredient_handler::delete_ingredient_handler),
+        )
+        .with_state(delete_ingredient_service)
+        .route(
+            "/ingredients",
+            post(add_ingredient_handler::add_ingredient_handler),
+        )
+        .with_state(add_ingredient_service);
     let recipes_routes = Router::new()
         .route("/", put(update_recipe_handler::update_recipe_handler))
         .with_state(update_recipe_service)
@@ -71,12 +92,12 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         .route("/", post(create_recipe_handler::insert_recipe_handler))
         .with_state(insert_recipe_service.clone());
 
-    let recipes_router =
-        Router::new()
-            .nest("/recipes", recipes_routes)
-            .route_layer(middleware::from_fn_with_state(
-                token_verification_service,
-                authrorization_middleware,
-            ));
+    let recipes_router = Router::new()
+        .nest("/recipes", recipes_routes)
+        .nest("/recipes/:identifier", ingredients_routes)
+        .route_layer(middleware::from_fn_with_state(
+            token_verification_service,
+            authrorization_middleware,
+        ));
     Router::new().nest("/api/v1", recipes_router)
 }

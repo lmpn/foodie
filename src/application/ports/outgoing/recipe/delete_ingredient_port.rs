@@ -2,17 +2,21 @@ use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 
 #[async_trait]
-pub trait RemoveIngredientPort {
-    async fn remove_ingredient(&self, uuid: &str) -> Result<(), RemoveIngredientError>;
+pub trait DeleteIngredientPort {
+    async fn delete_ingredient(
+        &self,
+        recipe_uuid: &str,
+        recipe_uuid: &str,
+    ) -> Result<(), DeleteIngredientError>;
 }
 
 #[derive(Debug)]
-pub enum RemoveIngredientError {
+pub enum DeleteIngredientError {
     RecordNotFound,
     InternalError,
 }
 
-impl Display for RemoveIngredientError {
+impl Display for DeleteIngredientError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::RecordNotFound => write!(f, "Record not found"),
@@ -21,4 +25,4 @@ impl Display for RemoveIngredientError {
     }
 }
 
-impl Error for RemoveIngredientError {}
+impl Error for DeleteIngredientError {}

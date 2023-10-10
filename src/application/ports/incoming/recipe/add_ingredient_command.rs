@@ -38,22 +38,22 @@ impl Request {
 }
 
 #[async_trait]
-pub trait AddCommand {
-    async fn add(&self, request: Request) -> Result<(), AddCommandError>;
+pub trait AddIngredientCommand {
+    async fn add(&self, request: Request) -> Result<(), AddIngredientCommandError>;
 }
 
 #[derive(Debug, PartialEq)]
-pub enum AddCommandError {
+pub enum AddIngredientCommandError {
     InternalError,
     RecipeNotFound,
 }
 
-impl Display for AddCommandError {
+impl Display for AddIngredientCommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AddCommandError::InternalError => f.write_str("Internal error"),
-            AddCommandError::RecipeNotFound => f.write_str("Recipe not found"),
+            AddIngredientCommandError::InternalError => f.write_str("Internal error"),
+            AddIngredientCommandError::RecipeNotFound => f.write_str("Recipe not found"),
         }
     }
 }
-impl Error for AddCommandError {}
+impl Error for AddIngredientCommandError {}
