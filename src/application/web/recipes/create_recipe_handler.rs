@@ -9,6 +9,7 @@ use axum::{
     http::{Response, StatusCode},
     Json,
 };
+use hyper::Body;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -30,26 +31,23 @@ pub(crate) type DynCreateRecipeService = Arc<dyn CreateRecipeCommand + Sync + Se
 pub async fn insert_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynCreateRecipeService>,
     Json(body): Json<InsertRecipeJson>,
-) -> Result<Response<BoxBody>, YaissError> {
+) -> Result<Response<Body>, YaissError> {
     let result = service.create_recipe(body.into()).await;
     match result {
-        Ok(()) => {
-            let builder = Response::builder()
-                .status(StatusCode::CREATED)
-                .body(body::boxed(BoxBody::default()));
-            builder.map_err(|e| e.into())
-        }
-        Err(CreateRecipeCommandError::InternalError) => {
-            let builder = Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .header(axum::http::header::CONTENT_TYPE, "application/json")
-                .body(body::boxed(
-                    Json(json!({
-                        "error": format!("{:?}", CreateRecipeCommandError::InternalError),
-                    }))
-                    .to_string(),
-                ));
-            builder.map_err(|e| e.into())
-        }
+        Ok(uuid) => Response::builder()
+            .status(StatusCode::CREATED)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(Json(json!({"uuid":uuid})).to_string()))
+            .map_err(|e| e.into()),
+        Err(CreateRecipeCommandError::InternalError) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(
+                Json(json!({
+                    "error": format!("{:?}", CreateRecipeCommandError::InternalError),
+                }))
+                .to_string(),
+            ))
+            .map_err(|e| e.into()),
     }
 }

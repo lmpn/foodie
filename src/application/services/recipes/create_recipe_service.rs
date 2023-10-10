@@ -29,18 +29,18 @@ impl<Storage> CreateRecipeCommand for CreateRecipe<Storage>
 where
     Storage: InsertRecipePort + Sync + Send,
 {
-    async fn create_recipe(&self, request: Request) -> Result<(), CreateRecipeCommandError> {
+    async fn create_recipe(
+        &self,
+        request: Request,
+    ) -> Result<uuid::Uuid, CreateRecipeCommandError> {
+        let uuid = uuid::Uuid::new_v4();
+        let uuid_str = uuid.to_string();
         match self
             .storage
-            .insert_recipe(
-                uuid::Uuid::new_v4().to_string().as_str(),
-                request.name(),
-                request.image(),
-                request.method(),
-            )
+            .insert_recipe(&uuid_str, request.name(), request.image(), request.method())
             .await
         {
-            Ok(()) => Ok(()),
+            Ok(()) => Ok(uuid),
             Err(InsertRecipeError::InternalError) => Err(CreateRecipeCommandError::InternalError),
         }
     }

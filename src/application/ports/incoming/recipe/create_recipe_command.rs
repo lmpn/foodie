@@ -32,7 +32,7 @@ impl Request {
 
 #[async_trait]
 pub trait CreateRecipeCommand {
-    async fn create_recipe(&self, recipe: Request) -> Result<(), CreateRecipeCommandError>;
+    async fn create_recipe(&self, recipe: Request) -> Result<uuid::Uuid, CreateRecipeCommandError>;
 }
 
 #[derive(Debug, PartialEq)]
