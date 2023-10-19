@@ -12,14 +12,12 @@ pub trait DeleteIngredientPort {
 
 #[derive(Debug)]
 pub enum DeleteIngredientError {
-    RecordNotFound,
     InternalError,
 }
 
 impl Display for DeleteIngredientError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::RecordNotFound => write!(f, "Record not found"),
             Self::InternalError => write!(f, "Internal error"),
         }
     }

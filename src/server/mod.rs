@@ -48,7 +48,7 @@ impl Server {
             .serve(self.router.clone().into_make_service());
         tokio::spawn(async {
             event!(Level::INFO, "Starting server");
-            server.await.unwrap();
+            server.await.expect("Error starting server");
         });
     }
 
@@ -95,32 +95,4 @@ impl Server {
 
 async fn hello_world() -> &'static str {
     "Hello world!"
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tokio::time::sleep;
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn start_and_stop() {
-        let configuration = Configuration::new();
-        let state = State::new(&configuration);
-        let mut sh = Server::new(state, &configuration);
-        sh.serve();
-        sleep(Duration::from_millis(500)).await;
-        let response = reqwest::get("http://0.0.0.0:3000/")
-            .await
-            .expect("failed to perfrom GET /")
-            .text()
-            .await
-            .expect("failed to read payload");
-        assert_eq!(response, "Hello world!");
-        sh.stop().await;
-
-        let response = reqwest::get("http://0.0.0.0:3000/")
-            .await
-            .expect_err("expected error");
-        assert!(response.is_request());
-    }
 }

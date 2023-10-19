@@ -5,53 +5,62 @@ use crate::{
     error::YaissError,
 };
 use axum::{
-    body::{self, BoxBody},
+    body::{self},
     http::{Response, StatusCode},
     Json,
 };
+use hyper::Body;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
+use tracing::info;
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateRecipeJson {
-    uuid: uuid::Uuid,
     name: String,
     image: String,
     method: String,
 }
 
-impl Into<Request> for UpdateRecipeJson {
-    fn into(self) -> Request {
-        Request::new(self.uuid, self.name, self.image, self.method)
-    }
-}
-
 pub(crate) type DynUpdateRecipeService = Arc<dyn UpdateRecipeCommand + Sync + Send>;
 pub async fn update_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynUpdateRecipeService>,
+    axum::extract::Path(recipe_uuid): axum::extract::Path<uuid::Uuid>,
     Json(body): Json<UpdateRecipeJson>,
-) -> Result<Response<BoxBody>, YaissError> {
-    let result = service.update_recipe(body.into()).await;
+) -> Result<Response<Body>, YaissError> {
+    info!("{:?}", body);
+    if body.name.is_empty() {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(
+                Json(json!({
+                    "error": "name is required"
+                }))
+                .to_string(),
+            ))
+            .map_err(|e| e.into());
+    }
+    let request = Request::new(recipe_uuid, body.name, body.image, body.method);
+    let result = service.update_recipe(request).await;
     let builder = match result {
         Ok(()) => Response::builder()
             .status(StatusCode::OK)
-            .header(axum::http::header::CONTENT_TYPE, "application/json")
-            .body(BoxBody::default()),
+            .body(body::Body::empty()),
         Err(UpdateRecipeCommandError::RecipeNotFound) => Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
-            .body(body::boxed(
+            .body(body::Body::from(
                 Json(json!({
-                    "error": format!("{:?}",UpdateRecipeCommandError::RecipeNotFound)
+                    "error": format!("{}",UpdateRecipeCommandError::RecipeNotFound)
                 }))
                 .to_string(),
             )),
         Err(UpdateRecipeCommandError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
-            .body(body::boxed(
+            .body(body::Body::from(
                 Json(json!({
-                    "error": format!("{:?}",UpdateRecipeCommandError::InternalError)
+                    "error": format!("{}",UpdateRecipeCommandError::InternalError)
                 }))
                 .to_string(),
             )),

@@ -1,8 +1,8 @@
 use std::error::Error;
 
+use foodie_backend::{configuration::Configuration, server::Server, state::State};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{event, Level};
-use yaiss_backend::{configuration::Configuration, server::Server, state::State};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

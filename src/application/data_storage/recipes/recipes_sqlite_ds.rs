@@ -33,7 +33,6 @@ impl From<sqlx::Error> for UpdateRecipeError {
 impl From<sqlx::Error> for DeleteRecipeError {
     fn from(value: sqlx::Error) -> Self {
         match value {
-            sqlx::Error::RowNotFound => DeleteRecipeError::RecordNotFound,
             _ => DeleteRecipeError::InternalError,
         }
     }
@@ -86,7 +85,7 @@ impl UpdateRecipePort for RecipeSqliteDS {
         image: &str,
         method: &str,
     ) -> Result<(), UpdateRecipeError> {
-        sqlx::query!(
+        let e = sqlx::query!(
             r#" UPDATE recipe SET name = ?, method = ?, image = ?  WHERE uuid = ?"#,
             name,
             method,
@@ -94,9 +93,12 @@ impl UpdateRecipePort for RecipeSqliteDS {
             uuid
         )
         .execute(&self.pool)
-        .await
-        .map(|_e| ())
-        .map_err(Into::into)
+        .await;
+        if e.is_ok() && e.as_ref().unwrap().rows_affected() == 0 {
+            return Err(UpdateRecipeError::RecordNotFound);
+        } else {
+            e.map(|_e| ()).map_err(Into::into)
+        }
     }
 }
 
@@ -119,11 +121,14 @@ impl QueryRecipePort for RecipeSqliteDS {
 #[async_trait]
 impl DeleteRecipePort for RecipeSqliteDS {
     async fn delete_recipe(&self, uuid: &str) -> Result<(), DeleteRecipeError> {
-        sqlx::query!("DELETE FROM recipe WHERE uuid = ?", uuid)
+        let e = sqlx::query!("DELETE FROM recipe WHERE uuid = ?", uuid)
             .execute(&self.pool)
-            .await
-            .map(|_v| ())
-            .map_err(|e| e.into())
+            .await;
+        if e.is_ok() && e.as_ref().unwrap().rows_affected() == 0 {
+            return Err(DeleteRecipeError::RecipeNotFound);
+        } else {
+            e.map(|_e| ()).map_err(Into::into)
+        }
     }
 }
 

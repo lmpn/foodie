@@ -22,7 +22,6 @@ pub async fn delete_recipe_handler(
     let builder = match service.delete_recipe(identifier.0).await {
         Ok(()) => Response::builder()
             .status(StatusCode::OK)
-            .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(BoxBody::default()),
         Err(DeleteRecipeCommandError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)

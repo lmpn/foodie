@@ -14,16 +14,12 @@ pub trait DeleteIngredientCommand {
 #[derive(Debug, PartialEq)]
 pub enum DeleteIngredientCommandError {
     InternalError,
-    RecipeNotFound,
-    IngredientNotFound,
 }
 
 impl Display for DeleteIngredientCommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DeleteIngredientCommandError::InternalError => f.write_str("Internal error"),
-            DeleteIngredientCommandError::RecipeNotFound => f.write_str("Recipe not found"),
-            DeleteIngredientCommandError::IngredientNotFound => f.write_str("Ingredient not found"),
         }
     }
 }

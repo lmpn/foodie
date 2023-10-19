@@ -34,9 +34,10 @@ impl<Storage> AddIngredientCommand for AddIngredient<Storage>
 where
     Storage: AddIngredientPort + Send + Sync,
 {
-    async fn add(&self, request: Request) -> Result<(), AddIngredientCommandError> {
+    async fn add_ingredient(&self, request: Request) -> Result<Uuid, AddIngredientCommandError> {
+        let uuid = Uuid::new_v4();
         let ingredient = Ingredient::new(
-            Uuid::new_v4(),
+            uuid,
             request.name().to_string(),
             request.amount(),
             request.unit().to_string(),
@@ -45,6 +46,7 @@ where
         self.storage
             .add_ingredient(&recipe_uuid, ingredient)
             .await
+            .map(|_| uuid)
             .map_err(|e| e.into())
     }
 }

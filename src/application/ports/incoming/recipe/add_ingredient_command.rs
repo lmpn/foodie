@@ -39,7 +39,7 @@ impl Request {
 
 #[async_trait]
 pub trait AddIngredientCommand {
-    async fn add(&self, request: Request) -> Result<(), AddIngredientCommandError>;
+    async fn add_ingredient(&self, request: Request) -> Result<Uuid, AddIngredientCommandError>;
 }
 
 #[derive(Debug, PartialEq)]

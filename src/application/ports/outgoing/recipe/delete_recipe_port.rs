@@ -8,15 +8,15 @@ pub trait DeleteRecipePort {
 
 #[derive(Debug)]
 pub enum DeleteRecipeError {
-    RecordNotFound,
     InternalError,
+    RecipeNotFound,
 }
 
 impl Display for DeleteRecipeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::RecordNotFound => write!(f, "Record not found"),
-            Self::InternalError => write!(f, "Internal error"),
+            Self::InternalError => write!(f, "internal error"),
+            Self::RecipeNotFound => write!(f, "recipe not found"),
         }
     }
 }

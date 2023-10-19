@@ -51,8 +51,8 @@ pub enum UpdateRecipeCommandError {
 impl Display for UpdateRecipeCommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UpdateRecipeCommandError::InternalError => f.write_str("Internal error"),
-            UpdateRecipeCommandError::RecipeNotFound => f.write_str("Recipe not found"),
+            UpdateRecipeCommandError::InternalError => f.write_str("internal error"),
+            UpdateRecipeCommandError::RecipeNotFound => f.write_str("recipe not found"),
         }
     }
 }

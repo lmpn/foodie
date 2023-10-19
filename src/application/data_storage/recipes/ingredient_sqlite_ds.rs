@@ -26,7 +26,6 @@ impl From<sqlx::Error> for DeleteIngredientError {
     fn from(value: sqlx::Error) -> Self {
         error!("{}", value);
         match value {
-            sqlx::Error::RowNotFound => DeleteIngredientError::RecordNotFound,
             _ => DeleteIngredientError::InternalError,
         }
     }
@@ -141,9 +140,20 @@ impl QueryIngredientsPort for IngredientSqliteDS {
         count: i64,
         offset: i64,
     ) -> Result<Vec<Ingredient>, QueryIngredientsError> {
-        sqlx::query_as!(
+        let tx = self.pool.begin().await?;
+        let recipe_found = sqlx::query!(r#"SELECT uuid FROM recipe WHERE uuid = ? "#, recipe_uuid)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(Into::<QueryIngredientsError>::into);
+        if recipe_found.is_err() {
+            tx.rollback()
+                .await
+                .map_err(Into::<QueryIngredientsError>::into)?;
+            return Err(recipe_found.unwrap_err());
+        }
+        let ingredients = sqlx::query_as!(
             IngredientRecord,
-            r#"SELECT uuid, name, amount, unit FROM ingredient WHERE recipe_uuid = ? LIMIT ? OFFSET ?"#,
+            r#"SELECT uuid, name, amount, unit FROM ingredient WHERE recipe_uuid = ? ORDER BY uuid ASC LIMIT ? OFFSET ? "#,
             recipe_uuid,
             count,
             offset
@@ -151,7 +161,17 @@ impl QueryIngredientsPort for IngredientSqliteDS {
         .fetch_all(&self.pool)
         .await
         .map(|e| e.into_iter().map(Into::into).collect())
-        .map_err(Into::into)
+        .map_err(Into::into);
+        if ingredients.is_err() {
+            tx.rollback()
+                .await
+                .map_err(Into::<QueryIngredientsError>::into)?;
+        } else {
+            tx.commit()
+                .await
+                .map_err(Into::<QueryIngredientsError>::into)?;
+        }
+        return ingredients;
     }
 }
 

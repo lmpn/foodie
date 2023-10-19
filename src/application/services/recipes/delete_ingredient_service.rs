@@ -13,7 +13,6 @@ impl From<DeleteIngredientError> for DeleteIngredientCommandError {
     fn from(value: DeleteIngredientError) -> Self {
         error!("{}", value);
         match value {
-            DeleteIngredientError::RecordNotFound => DeleteIngredientCommandError::RecipeNotFound,
             DeleteIngredientError::InternalError => DeleteIngredientCommandError::InternalError,
         }
     }

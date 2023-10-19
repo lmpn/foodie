@@ -5,7 +5,7 @@ use crate::{
     error::YaissError,
 };
 use axum::{
-    body::{self, BoxBody},
+    body::{self},
     http::{Response, StatusCode},
     Json,
 };
@@ -32,6 +32,18 @@ pub async fn insert_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynCreateRecipeService>,
     Json(body): Json<InsertRecipeJson>,
 ) -> Result<Response<Body>, YaissError> {
+    if body.name.is_empty() {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(
+                Json(json!({
+                    "error": "name is required"
+                }))
+                .to_string(),
+            ))
+            .map_err(|e| e.into());
+    }
     let result = service.create_recipe(body.into()).await;
     match result {
         Ok(uuid) => Response::builder()
@@ -44,6 +56,7 @@ pub async fn insert_recipe_handler(
             .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(body::Body::from(
                 Json(json!({
+
                     "error": format!("{:?}", CreateRecipeCommandError::InternalError),
                 }))
                 .to_string(),

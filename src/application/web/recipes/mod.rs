@@ -20,6 +20,7 @@ use crate::{
             recipes::{
                 add_ingredient_service::AddIngredient, create_recipe_service::CreateRecipe,
                 delete_ingredient_service::DeleteIngredient, delete_recipe_service::DeleteRecipe,
+                query_ingredient_page_service::QueryIngredientsPage,
                 query_recipe_service::QueryRecipe, update_ingredient_service::UpdateIngredient,
                 update_recipe_service::UpdateRecipe,
             },
@@ -32,7 +33,9 @@ use crate::{
 use self::{
     add_ingredient_handler::DynAddIngredientService, create_recipe_handler::DynCreateRecipeService,
     delete_ingredient_handler::DynDeleteIngredientService,
-    delete_recipe_handler::DynDeleteRecipesService, read_recipe_handler::DynQueryRecipeService,
+    delete_recipe_handler::DynDeleteRecipesService,
+    read_ingredient_page_handler::DynIngredientsPageQueryService,
+    read_recipe_handler::DynQueryRecipeService,
     update_ingredient_handler::DynUpdateIngredientService,
     update_recipe_handler::DynUpdateRecipeService,
 };
@@ -71,7 +74,15 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         Arc::new(DeleteIngredient::new(ingredient_storage.clone())) as DynDeleteIngredientService;
     let update_ingredient_service =
         Arc::new(UpdateIngredient::new(ingredient_storage.clone())) as DynUpdateIngredientService;
+    let query_ingredient_page_service =
+        Arc::new(QueryIngredientsPage::new(ingredient_storage.clone()))
+            as DynIngredientsPageQueryService;
     let ingredients_routes = Router::new()
+        .route(
+            "/ingredients",
+            get(read_ingredient_page_handler::read_ingredient_page_handler),
+        )
+        .with_state(query_ingredient_page_service)
         .route(
             "/ingredients/:ingredient_identifier",
             put(update_ingredient_handler::update_ingredient_handler),
@@ -88,7 +99,10 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         )
         .with_state(add_ingredient_service);
     let recipes_routes = Router::new()
-        .route("/", put(update_recipe_handler::update_recipe_handler))
+        .route(
+            "/:identifier",
+            put(update_recipe_handler::update_recipe_handler),
+        )
         .with_state(update_recipe_service)
         .route(
             "/:identifier",

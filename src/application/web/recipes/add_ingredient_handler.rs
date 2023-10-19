@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    body::{self, BoxBody},
+    body::{self},
+    extract::Path,
     response::Response,
     Json,
 };
-use hyper::StatusCode;
+use hyper::{Body, StatusCode};
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -19,55 +20,45 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AddIngredientJson {
-    recipe_id: Uuid,
     name: String,
     amount: f64,
     unit: String,
-}
-
-impl Into<Request> for AddIngredientJson {
-    fn into(self) -> Request {
-        Request::new(self.recipe_id, self.name, self.amount, self.unit)
-    }
 }
 
 pub(crate) type DynAddIngredientService = Arc<dyn AddIngredientCommand + Sync + Send>;
 
 pub async fn add_ingredient_handler(
     axum::extract::State(service): axum::extract::State<DynAddIngredientService>,
+    Path(recipe_uuid): Path<Uuid>,
     Json(body): Json<AddIngredientJson>,
-) -> Result<Response<BoxBody>, YaissError> {
-    let result = service.add(body.into()).await;
+) -> Result<Response<Body>, YaissError> {
+    let request = Request::new(recipe_uuid, body.name, body.amount, body.unit);
+    let result = service.add_ingredient(request).await;
     match result {
-        Ok(()) => {
-            let builder = Response::builder()
-                .status(StatusCode::CREATED)
-                .body(body::boxed(BoxBody::default()));
-            builder.map_err(|e| e.into())
-        }
-        Err(AddIngredientCommandError::RecipeNotFound) => {
-            let builder = Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .header(axum::http::header::CONTENT_TYPE, "application/json")
-                .body(body::boxed(
-                    Json(json!({
-                        "error": format!("{:?}", AddIngredientCommandError::RecipeNotFound),
-                    }))
-                    .to_string(),
-                ));
-            builder.map_err(|e| e.into())
-        }
-        Err(AddIngredientCommandError::InternalError) => {
-            let builder = Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .header(axum::http::header::CONTENT_TYPE, "application/json")
-                .body(body::boxed(
-                    Json(json!({
-                        "error": format!("{:?}", AddIngredientCommandError::InternalError),
-                    }))
-                    .to_string(),
-                ));
-            builder.map_err(|e| e.into())
-        }
+        Ok(uuid) => Response::builder()
+            .status(StatusCode::CREATED)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(Json(json!({"uuid":uuid})).to_string()))
+            .map_err(|e| e.into()),
+        Err(AddIngredientCommandError::RecipeNotFound) => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(
+                Json(json!({
+                    "error": format!("{:?}", AddIngredientCommandError::RecipeNotFound),
+                }))
+                .to_string(),
+            ))
+            .map_err(|e| e.into()),
+        Err(AddIngredientCommandError::InternalError) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::Body::from(
+                Json(json!({
+                    "error": format!("{:?}", AddIngredientCommandError::InternalError),
+                }))
+                .to_string(),
+            ))
+            .map_err(|e| e.into()),
     }
 }

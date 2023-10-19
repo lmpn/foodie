@@ -6,6 +6,7 @@ use crate::{
 };
 use axum::{
     body::{self, BoxBody},
+    extract::Path,
     http::{Response, StatusCode},
     Json,
 };
@@ -17,16 +18,14 @@ pub(crate) type DynDeleteIngredientService = Arc<dyn DeleteIngredientCommand + S
 
 pub async fn delete_ingredient_handler(
     axum::extract::State(service): axum::extract::State<DynDeleteIngredientService>,
-    recipe_identifier: axum::extract::Path<Uuid>,
-    ingredient_identifier: axum::extract::Path<Uuid>,
+    Path((recipe_identifier, ingredient_identifier)): Path<(Uuid, Uuid)>,
 ) -> Result<Response<BoxBody>, YaissError> {
     let builder = match service
-        .delete(recipe_identifier.0, ingredient_identifier.0)
+        .delete(recipe_identifier, ingredient_identifier)
         .await
     {
         Ok(()) => Response::builder()
             .status(StatusCode::OK)
-            .header(axum::http::header::CONTENT_TYPE, "application/json")
             .body(BoxBody::default()),
         Err(DeleteIngredientCommandError::InternalError) => Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
@@ -34,24 +33,6 @@ pub async fn delete_ingredient_handler(
             .body(body::boxed(
                 Json(json!({
                     "error": format!("{}", DeleteIngredientCommandError::InternalError)
-                }))
-                .to_string(),
-            )),
-        Err(DeleteIngredientCommandError::IngredientNotFound) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .header(axum::http::header::CONTENT_TYPE, "application/json")
-            .body(body::boxed(
-                Json(json!({
-                    "error": format!("{}", DeleteIngredientCommandError::IngredientNotFound)
-                }))
-                .to_string(),
-            )),
-        Err(DeleteIngredientCommandError::RecipeNotFound) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .header(axum::http::header::CONTENT_TYPE, "application/json")
-            .body(body::boxed(
-                Json(json!({
-                    "error": format!("{}", DeleteIngredientCommandError::RecipeNotFound)
                 }))
                 .to_string(),
             )),

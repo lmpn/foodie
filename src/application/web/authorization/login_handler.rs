@@ -36,6 +36,30 @@ pub async fn login_handler(
     State(service): State<DynLoginService>,
     Json(body): Json<UserLoginJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
+    if body.email.is_empty() {
+        let v = Json(json!({
+            "status": "fail",
+            "error": "email is required"
+        }))
+        .to_string();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(v))
+            .map_err(Into::into);
+    }
+    if body.password.is_empty() {
+        let v = Json(json!({
+            "status": "fail",
+            "error": "password is required"
+        }))
+        .to_string();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(v))
+            .map_err(Into::into);
+    }
     let token = service.login(body.into()).await;
     match token {
         Ok((token, maxage)) => {

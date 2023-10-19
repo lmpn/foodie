@@ -1,9 +1,10 @@
 use axum::{
     body::{self, Body},
+    extract::Query,
     http::{Response, StatusCode},
     Json,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -50,16 +51,21 @@ impl From<&Ingredient> for IngredientJson {
     }
 }
 
+#[derive(Deserialize)]
+pub struct Pagination {
+    pub(crate) count: i64,
+    pub(crate) offset: i64,
+}
+
 pub(crate) type DynIngredientsPageQueryService = Arc<dyn IngredientsPageQuery + Sync + Send>;
-pub async fn read_recipe_handler(
+pub async fn read_ingredient_page_handler(
     axum::extract::State(service): axum::extract::State<DynIngredientsPageQueryService>,
     axum::extract::Path(uuid): axum::extract::Path<uuid::Uuid>,
-    axum::extract::Query(count): axum::extract::Query<i64>,
-    axum::extract::Query(offset): axum::extract::Query<i64>,
+    pagination: Query<Pagination>,
 ) -> Result<Response<Body>, YaissError> {
     let builder = match service
         .clone()
-        .ingredients_page_query(uuid, count, offset)
+        .ingredients_page_query(uuid, pagination.count, pagination.offset)
         .await
     {
         Ok(ingredients) => Response::builder()

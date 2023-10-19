@@ -60,6 +60,31 @@ pub async fn registration_handler(
     State(service): State<DynRegistrationService>,
     Json(body): Json<UserRegistrationJson>,
 ) -> Result<Response<BoxBody>, YaissError> {
+    if body.email.is_empty() {
+        let v = Json(json!({
+            "status": "fail",
+            "error": "email is required"
+        }))
+        .to_string();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(v))
+            .map_err(Into::into);
+    }
+    if body.password.is_empty() {
+        let v = Json(json!({
+            "status": "fail",
+            "error": "password is required"
+        }))
+        .to_string();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(body::boxed(v))
+            .map_err(Into::into);
+    }
+
     let builder = match service.register(body.into()).await {
         Ok(user) => {
             let v = Json(json!({
