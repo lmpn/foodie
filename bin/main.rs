@@ -1,9 +1,14 @@
+use configuration::Configuration;
+use server::Server;
+use state::State;
 use std::error::Error;
-
-use foodie_backend::{configuration::Configuration, server::Server, state::State};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{event, Level};
 
+mod configuration;
+mod server;
+mod state;
+mod web;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt()

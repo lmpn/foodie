@@ -1,10 +1,10 @@
-use crate::error::YaissError;
 use axum::{
     body::{self, BoxBody},
     response::Response,
     Json,
 };
 use axum_extra::extract::cookie::Cookie;
+use foodie_backend::error::YaissError;
 use hyper::StatusCode;
 use serde_json::json;
 

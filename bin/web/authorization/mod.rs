@@ -7,22 +7,22 @@ use axum::{
 };
 use hyper::Body;
 
-use crate::{
+use foodie_backend::{
     application::data_storage::authorization::user_sqlite_ds::UserSqliteDS,
     application::services::authorization::{
         login_service::LoginService, registration_service::RegistrationService,
         token_verification_service::TokenVerificationService,
     },
-    configuration::Configuration,
-    state::State,
 };
+
+use crate::{configuration::Configuration, state::State};
 
 use self::{
     login_handler::DynLoginService, logout_handler::logout_handler,
     registration_handler::DynRegistrationService,
 };
 
-use super::middleware::authorization::{authrorization_middleware, DynTokenVerificationService};
+use super::middleware::authorization::{authorization_middleware, DynTokenVerificationService};
 
 pub mod login_handler;
 pub mod logout_handler;
@@ -46,7 +46,7 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         .route("/logout", get(logout_handler))
         .route_layer(middleware::from_fn_with_state(
             token_verification_service,
-            authrorization_middleware,
+            authorization_middleware,
         ))
         .route(
             "/register",

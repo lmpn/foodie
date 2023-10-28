@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 
-use crate::{
+use foodie_backend::{
     application::{
         domain::recipe::ingredient::Ingredient,
         ports::incoming::recipe::ingredient_page_query::{

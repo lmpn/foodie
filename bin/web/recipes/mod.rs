@@ -7,27 +7,22 @@ use axum::{
     Router,
 };
 
-use crate::{
-    application::{
-        data_storage::{
-            authorization::user_sqlite_ds::UserSqliteDS,
-            recipes::{
-                ingredient_sqlite_ds::IngredientSqliteDS, recipes_sqlite_ds::RecipeSqliteDS,
-            },
-        },
-        services::{
-            authorization::token_verification_service::TokenVerificationService,
-            recipes::{
-                add_ingredient_service::AddIngredient, create_recipe_service::CreateRecipe,
-                delete_ingredient_service::DeleteIngredient, delete_recipe_service::DeleteRecipe,
-                query_ingredient_page_service::QueryIngredientsPage,
-                query_recipe_service::QueryRecipe, update_ingredient_service::UpdateIngredient,
-                update_recipe_service::UpdateRecipe,
-            },
+use crate::configuration::Configuration;
+use crate::state::State;
+use foodie_backend::application::{
+    data_storage::{
+        authorization::user_sqlite_ds::UserSqliteDS,
+        recipes::{ingredient_sqlite_ds::IngredientSqliteDS, recipes_sqlite_ds::RecipeSqliteDS},
+    },
+    services::{
+        authorization::token_verification_service::TokenVerificationService,
+        recipes::{
+            add_ingredient_service::AddIngredient, create_recipe_service::CreateRecipe,
+            delete_ingredient_service::DeleteIngredient, delete_recipe_service::DeleteRecipe,
+            query_ingredient_page_service::QueryIngredientsPage, query_recipe_service::QueryRecipe,
+            update_ingredient_service::UpdateIngredient, update_recipe_service::UpdateRecipe,
         },
     },
-    configuration::Configuration,
-    state::State,
 };
 
 use self::{
@@ -40,7 +35,7 @@ use self::{
     update_recipe_handler::DynUpdateRecipeService,
 };
 
-use super::middleware::authorization::{authrorization_middleware, DynTokenVerificationService};
+use super::middleware::authorization::{authorization_middleware, DynTokenVerificationService};
 
 pub mod add_ingredient_handler;
 pub mod create_recipe_handler;
@@ -122,7 +117,7 @@ pub fn router(state: State, configuration: &Configuration) -> Router<(), Body> {
         .nest("/recipes/:identifier", ingredients_routes)
         .route_layer(middleware::from_fn_with_state(
             token_verification_service,
-            authrorization_middleware,
+            authorization_middleware,
         ));
     Router::new().nest("/api/v1", recipes_router)
 }

@@ -10,7 +10,7 @@ use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{
+use foodie_backend::{
     application::domain::authorization::filtered_user::FilteredUser,
     application::ports::incoming::authorization::registration_command::{
         RegistrationCommand, RegistrationCommandError, Request,

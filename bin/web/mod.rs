@@ -2,11 +2,10 @@ use axum::{body, response::Response, Json};
 use hyper::{Body, StatusCode};
 use serde_json::json;
 
-use crate::error::YaissError;
+use foodie_backend::error::YaissError;
 pub mod authorization;
 pub mod middleware;
 pub mod recipes;
-
 pub async fn handler_404() -> Result<Response<Body>, YaissError> {
     let body = Json(json!({
         "error": "resource not found",

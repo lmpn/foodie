@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::{
+use foodie_backend::{
     application::ports::incoming::recipe::add_ingredient_command::{
         AddIngredientCommand, AddIngredientCommandError, Request,
     },
