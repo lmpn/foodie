@@ -22,7 +22,7 @@ pub fn malformed_recipe() -> serde_json::Value {
 
 pub fn wellformed_recipe() -> serde_json::Value {
     let mut rng = rand::thread_rng();
-    json!({ "name": format!("image.url{}",rng.gen::<usize>()), "image":  format!("image.url{}",rng.gen::<usize>()  ), "method": format!("a method{}",rng.gen::<usize>()  )})
+    json!({ "name": format!("name{}",rng.gen::<usize>()), "image":  format!("image.url{}",rng.gen::<usize>()  ), "method": format!("a method{}",rng.gen::<usize>()  )})
 }
 
 #[tokio::test]
