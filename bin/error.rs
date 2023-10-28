@@ -3,14 +3,14 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-pub struct YaissError(anyhow::Error);
+pub struct FoodieError(anyhow::Error);
 
 // Tell axum how to convert `AppError` into a response.
-impl IntoResponse for YaissError {
+impl IntoResponse for FoodieError {
     fn into_response(self) -> Response {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("YaissError: {}", self.0),
+            format!("FoodieError: {}", self.0),
         )
             .into_response()
     }
@@ -18,7 +18,7 @@ impl IntoResponse for YaissError {
 
 // This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
 // `Result<_, AppError>`. That way you don't need to do that manually.
-impl<E> From<E> for YaissError
+impl<E> From<E> for FoodieError
 where
     E: Into<anyhow::Error>,
 {

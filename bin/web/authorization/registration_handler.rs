@@ -10,12 +10,12 @@ use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::error::FoodieError;
 use foodie_backend::{
     application::domain::authorization::filtered_user::FilteredUser,
     application::ports::incoming::authorization::registration_command::{
         RegistrationCommand, RegistrationCommandError, Request,
     },
-    error::YaissError,
 };
 
 #[derive(Debug, Deserialize)]
@@ -59,7 +59,7 @@ pub(crate) type DynRegistrationService = Arc<dyn RegistrationCommand + Sync + Se
 pub async fn registration_handler(
     State(service): State<DynRegistrationService>,
     Json(body): Json<UserRegistrationJson>,
-) -> Result<Response<BoxBody>, YaissError> {
+) -> Result<Response<BoxBody>, FoodieError> {
     if body.email.is_empty() {
         let v = Json(json!({
             "status": "fail",

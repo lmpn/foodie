@@ -3,17 +3,15 @@ use axum::{
     http::{Response, StatusCode},
     Json,
 };
-use foodie_backend::{
-    application::{
-        domain::recipe::recipe::Recipe,
-        ports::incoming::recipe::recipe_query::{RecipeQuery, RecipeQueryError},
-    },
-    error::YaissError,
+use foodie_backend::application::{
+    domain::recipe::recipe::Recipe,
+    ports::incoming::recipe::recipe_query::{RecipeQuery, RecipeQueryError},
 };
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
 
+use crate::error::FoodieError;
 #[derive(Debug, Clone, Serialize)]
 pub struct RecipeJson {
     uuid: uuid::Uuid,
@@ -37,7 +35,7 @@ pub(crate) type DynQueryRecipeService = Arc<dyn RecipeQuery + Sync + Send>;
 pub async fn read_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynQueryRecipeService>,
     index: axum::extract::Path<uuid::Uuid>,
-) -> Result<Response<Body>, YaissError> {
+) -> Result<Response<Body>, FoodieError> {
     let builder = match service.clone().recipe_query(index.0).await {
         Ok(recipe) => Response::builder()
             .status(StatusCode::OK)

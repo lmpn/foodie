@@ -1,13 +1,11 @@
+use crate::error::FoodieError;
 use axum::{
     body::{self},
     http::{Response, StatusCode},
     Json,
 };
-use foodie_backend::{
-    application::ports::incoming::recipe::update_recipe_command::{
-        Request, UpdateRecipeCommand, UpdateRecipeCommandError,
-    },
-    error::YaissError,
+use foodie_backend::application::ports::incoming::recipe::update_recipe_command::{
+    Request, UpdateRecipeCommand, UpdateRecipeCommandError,
 };
 use hyper::Body;
 use serde::Deserialize;
@@ -26,7 +24,7 @@ pub async fn update_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynUpdateRecipeService>,
     axum::extract::Path(recipe_uuid): axum::extract::Path<uuid::Uuid>,
     Json(body): Json<UpdateRecipeJson>,
-) -> Result<Response<Body>, YaissError> {
+) -> Result<Response<Body>, FoodieError> {
     info!("{:?}", body);
     if body.name.is_empty() {
         return Response::builder()

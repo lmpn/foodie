@@ -1,14 +1,12 @@
+use crate::error::FoodieError;
 use axum::{
     body::{self, BoxBody},
     extract::Path,
     http::{Response, StatusCode},
     Json,
 };
-use foodie_backend::{
-    application::ports::incoming::recipe::update_ingredient_command::{
-        Request, UpdateIngredientCommand, UpdateIngredientCommandError,
-    },
-    error::YaissError,
+use foodie_backend::application::ports::incoming::recipe::update_ingredient_command::{
+    Request, UpdateIngredientCommand, UpdateIngredientCommandError,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -26,7 +24,7 @@ pub async fn update_ingredient_handler(
     axum::extract::State(service): axum::extract::State<DynUpdateIngredientService>,
     Path((recipe_identifier, ingredient_identifier)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateIngredientJson>,
-) -> Result<Response<BoxBody>, YaissError> {
+) -> Result<Response<BoxBody>, FoodieError> {
     let request = Request::new(
         ingredient_identifier,
         body.name,

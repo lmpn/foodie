@@ -1,14 +1,14 @@
+use crate::error::FoodieError;
 use axum::{
     body::{self, BoxBody},
     response::Response,
     Json,
 };
 use axum_extra::extract::cookie::Cookie;
-use foodie_backend::error::YaissError;
 use hyper::StatusCode;
 use serde_json::json;
 
-pub async fn logout_handler() -> Result<Response<BoxBody>, YaissError> {
+pub async fn logout_handler() -> Result<Response<BoxBody>, FoodieError> {
     let cookie = Cookie::build("token", "")
         .path("/")
         .max_age(time::Duration::hours(-1))

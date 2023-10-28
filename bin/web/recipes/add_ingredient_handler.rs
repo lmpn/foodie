@@ -11,13 +11,11 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-use foodie_backend::{
-    application::ports::incoming::recipe::add_ingredient_command::{
-        AddIngredientCommand, AddIngredientCommandError, Request,
-    },
-    error::YaissError,
+use foodie_backend::application::ports::incoming::recipe::add_ingredient_command::{
+    AddIngredientCommand, AddIngredientCommandError, Request,
 };
 
+use crate::error::FoodieError;
 #[derive(Debug, Clone, Deserialize)]
 pub struct AddIngredientJson {
     name: String,
@@ -31,7 +29,7 @@ pub async fn add_ingredient_handler(
     axum::extract::State(service): axum::extract::State<DynAddIngredientService>,
     Path(recipe_uuid): Path<Uuid>,
     Json(body): Json<AddIngredientJson>,
-) -> Result<Response<Body>, YaissError> {
+) -> Result<Response<Body>, FoodieError> {
     let request = Request::new(recipe_uuid, body.name, body.amount, body.unit);
     let result = service.add_ingredient(request).await;
     match result {

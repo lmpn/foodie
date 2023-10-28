@@ -6,6 +6,7 @@ use tokio::signal::unix::{signal, SignalKind};
 use tracing::{event, Level};
 
 mod configuration;
+mod error;
 mod server;
 mod state;
 mod web;

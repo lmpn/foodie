@@ -1,13 +1,11 @@
+use crate::error::FoodieError;
 use axum::{
     body::{self},
     http::{Response, StatusCode},
     Json,
 };
-use foodie_backend::{
-    application::ports::incoming::recipe::create_recipe_command::{
-        CreateRecipeCommand, CreateRecipeCommandError, Request,
-    },
-    error::YaissError,
+use foodie_backend::application::ports::incoming::recipe::create_recipe_command::{
+    CreateRecipeCommand, CreateRecipeCommandError, Request,
 };
 use hyper::Body;
 use serde::Deserialize;
@@ -31,7 +29,7 @@ pub(crate) type DynCreateRecipeService = Arc<dyn CreateRecipeCommand + Sync + Se
 pub async fn insert_recipe_handler(
     axum::extract::State(service): axum::extract::State<DynCreateRecipeService>,
     Json(body): Json<InsertRecipeJson>,
-) -> Result<Response<Body>, YaissError> {
+) -> Result<Response<Body>, FoodieError> {
     if body.name.is_empty() {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)

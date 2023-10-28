@@ -8,14 +8,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 
-use foodie_backend::{
-    application::{
-        domain::recipe::ingredient::Ingredient,
-        ports::incoming::recipe::ingredient_page_query::{
-            IngredientsPageQuery, IngredientsPageQueryError,
-        },
+use crate::error::FoodieError;
+use foodie_backend::application::{
+    domain::recipe::ingredient::Ingredient,
+    ports::incoming::recipe::ingredient_page_query::{
+        IngredientsPageQuery, IngredientsPageQueryError,
     },
-    error::YaissError,
 };
 
 #[derive(Serialize)]
@@ -62,7 +60,7 @@ pub async fn read_ingredient_page_handler(
     axum::extract::State(service): axum::extract::State<DynIngredientsPageQueryService>,
     axum::extract::Path(uuid): axum::extract::Path<uuid::Uuid>,
     pagination: Query<Pagination>,
-) -> Result<Response<Body>, YaissError> {
+) -> Result<Response<Body>, FoodieError> {
     let builder = match service
         .clone()
         .ingredients_page_query(uuid, pagination.count, pagination.offset)

@@ -4,22 +4,20 @@ use axum::{
     http::{Response, StatusCode},
     Json,
 };
-use foodie_backend::{
-    application::ports::incoming::recipe::delete_ingredient_command::{
-        DeleteIngredientCommand, DeleteIngredientCommandError,
-    },
-    error::YaissError,
+use foodie_backend::application::ports::incoming::recipe::delete_ingredient_command::{
+    DeleteIngredientCommand, DeleteIngredientCommandError,
 };
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::error::FoodieError;
 pub(crate) type DynDeleteIngredientService = Arc<dyn DeleteIngredientCommand + Send + Sync>;
 
 pub async fn delete_ingredient_handler(
     axum::extract::State(service): axum::extract::State<DynDeleteIngredientService>,
     Path((recipe_identifier, ingredient_identifier)): Path<(Uuid, Uuid)>,
-) -> Result<Response<BoxBody>, YaissError> {
+) -> Result<Response<BoxBody>, FoodieError> {
     let builder = match service
         .delete(recipe_identifier, ingredient_identifier)
         .await

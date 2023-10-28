@@ -11,11 +11,9 @@ use hyper::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 
-use foodie_backend::{
-    application::ports::incoming::authorization::login_command::{
-        LoginCommand, LoginCommandError, Request,
-    },
-    error::YaissError,
+use crate::error::FoodieError;
+use foodie_backend::application::ports::incoming::authorization::login_command::{
+    LoginCommand, LoginCommandError, Request,
 };
 
 #[derive(Debug, Deserialize)]
@@ -35,7 +33,7 @@ pub(crate) type DynLoginService = Arc<dyn LoginCommand + Sync + Send>;
 pub async fn login_handler(
     State(service): State<DynLoginService>,
     Json(body): Json<UserLoginJson>,
-) -> Result<Response<BoxBody>, YaissError> {
+) -> Result<Response<BoxBody>, FoodieError> {
     if body.email.is_empty() {
         let v = Json(json!({
             "status": "fail",
