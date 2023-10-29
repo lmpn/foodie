@@ -1,0 +1,16 @@
+[package]
+name = "foodie-core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+argon2 = { version = "0.5.2", features = ["password-hash"] }
+async-trait = "0.1.74"
+chrono = "0.4.31"
+jsonwebtoken = "9.1.0"
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+serde = { version = "1.0.190", features = ["derive"] }
+tracing = "0.1.40"
+uuid = { version = "1.5.0", features = ["v4"] }
