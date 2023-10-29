@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::SqlitePool;
 
 use foodie_core::{
-    domain::recipe::recipe::Recipe,
+    domain::recipe::Recipe,
     ports::outgoing::recipe::{
         delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
         insert_recipe_port::{InsertRecipeError, InsertRecipePort},
@@ -19,13 +19,13 @@ struct RecipeRecord {
     pub method: String,
 }
 
-impl Into<Recipe> for RecipeRecord {
-    fn into(self) -> Recipe {
+impl From<RecipeRecord> for Recipe {
+    fn from(val: RecipeRecord) -> Self {
         Recipe::new(
-            uuid::Uuid::parse_str(&self.uuid).unwrap_or(uuid::Uuid::default()),
-            self.name,
-            self.image,
-            self.method,
+            uuid::Uuid::parse_str(&val.uuid).unwrap_or_default(),
+            val.name,
+            val.image,
+            val.method,
             vec![],
         )
     }

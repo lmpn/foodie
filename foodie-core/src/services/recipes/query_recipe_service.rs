@@ -1,5 +1,5 @@
 use crate::{
-    domain::recipe::recipe::Recipe,
+    domain::recipe::Recipe,
     ports::{
         incoming::recipe::recipe_query::{RecipeQuery, RecipeQueryError},
         outgoing::recipe::query_recipe_port::{QueryRecipeError, QueryRecipePort},

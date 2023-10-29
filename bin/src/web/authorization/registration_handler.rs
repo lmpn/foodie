@@ -25,9 +25,9 @@ pub struct UserRegistrationJson {
     pub password: String,
 }
 
-impl Into<Request> for UserRegistrationJson {
-    fn into(self) -> Request {
-        Request::new(self.name, self.email, self.password)
+impl From<UserRegistrationJson> for Request {
+    fn from(val: UserRegistrationJson) -> Self {
+        Request::new(val.name, val.email, val.password)
     }
 }
 

@@ -17,9 +17,9 @@ pub struct InsertRecipeJson {
     method: String,
 }
 
-impl Into<Request> for InsertRecipeJson {
-    fn into(self) -> Request {
-        Request::new(self.name, self.image, self.method)
+impl From<InsertRecipeJson> for Request {
+    fn from(val: InsertRecipeJson) -> Self {
+        Request::new(val.name, val.image, val.method)
     }
 }
 

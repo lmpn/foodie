@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use foodie_core::{
-    domain::recipe::recipe::Recipe,
+    domain::recipe::Recipe,
     ports::incoming::recipe::recipe_query::{RecipeQuery, RecipeQueryError},
 };
 use serde::Serialize;

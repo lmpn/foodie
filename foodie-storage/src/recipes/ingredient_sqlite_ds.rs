@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sqlx::{sqlite::SqliteQueryResult, SqlitePool};
+use sqlx::SqlitePool;
 
 use foodie_core::{
     domain::recipe::ingredient::Ingredient,
@@ -19,13 +19,13 @@ struct IngredientRecord {
     pub unit: String,
 }
 
-impl Into<Ingredient> for IngredientRecord {
-    fn into(self) -> Ingredient {
+impl From<IngredientRecord> for Ingredient {
+    fn from(value: IngredientRecord) -> Self {
         Ingredient::new(
-            uuid::Uuid::parse_str(&self.uuid).unwrap_or(uuid::Uuid::default()),
-            self.name,
-            self.amount,
-            self.unit,
+            uuid::Uuid::parse_str(&value.uuid).unwrap_or_default(),
+            value.name,
+            value.amount,
+            value.unit,
         )
     }
 }
@@ -117,11 +117,11 @@ impl QueryIngredientsPort for IngredientSqliteDS {
                 sqlx::Error::RowNotFound => QueryIngredientsError::RecipeNotFound,
                 _ => QueryIngredientsError::InternalError,
             });
-        if recipe_found.is_err() {
+        if let Err(error) = recipe_found {
             tx.rollback()
                 .await
                 .map_err(|_| QueryIngredientsError::InternalError)?;
-            return Err(recipe_found.unwrap_err());
+            return Err(error);
         }
         let ingredients = sqlx::query_as!(
             IngredientRecord,

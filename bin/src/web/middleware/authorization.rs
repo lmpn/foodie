@@ -36,12 +36,12 @@ pub async fn authorization_middleware<B>(
                         None
                     }
                 });
-            return v;
+            v
         });
     let token = token.ok_or_else(|| {
         let json_error = ErrorResponse {
             status: "fail",
-            message: format!("not logged in"),
+            message: "not logged in".to_string(),
         };
         (StatusCode::UNAUTHORIZED, Json(json_error))
     })?;
