@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FilteredUser {
     id: uuid::Uuid,
     name: String,

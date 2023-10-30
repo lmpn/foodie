@@ -23,7 +23,7 @@ use foodie_core::{
     },
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UserSqliteDS {
     pool: SqlitePool,
 }
