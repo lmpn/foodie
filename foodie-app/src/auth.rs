@@ -1,17 +1,13 @@
 use cfg_if::cfg_if;
-use foodie_core::{ports::outgoing::authorization::query_user_port::QueryUserPort, domain::authorization::filtered_user::FilteredUser};
-use foodie_storage::authorization::user_sqlite_ds::UserSqliteDS;
 use leptos::*;
 use serde::{Deserialize, Serialize};
-use sqlx::types::Uuid;
-use std::collections::HashSet;
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
-    use sqlx::SqlitePool;
+    use leptos::{logging::log};
     use axum_session_auth::{SessionSqlitePool, Authentication, HasPermission};
-    use bcrypt::{hash, verify, DEFAULT_COST};
-    use crate::todo::{pool, auth};
+    use crate::todo::{ auth};
+    use foodie_storage::authorization::user_sqlite_ds::UserSqliteDS;
     pub type AuthSession = axum_session_auth::AuthSession<AuthenticatedUser, String, SessionSqlitePool, UserSqliteDS>;
 }}
 
@@ -21,12 +17,19 @@ pub struct AuthenticatedUser {
     pub name: String,
     pub email: String,
     pub role: String,
-    pub photo: String,
     pub verified: bool,
 }
 
 impl AuthenticatedUser {
-    pub fn new(id: String, name: String, email: String, role: String, photo: String, verified: bool) -> Self { Self { id, name, email, role, photo, verified } }
+    pub fn new(id: String, name: String, email: String, role: String, verified: bool) -> Self {
+        Self {
+            id,
+            name,
+            email,
+            role,
+            verified,
+        }
+    }
 }
 
 impl Default for AuthenticatedUser {
@@ -36,8 +39,7 @@ impl Default for AuthenticatedUser {
             name: Default::default(),
             email: Default::default(),
             role: Default::default(),
-            photo: Default::default(), 
-            verified: Default::default() 
+            verified: Default::default(),
         }
     }
 }
@@ -45,70 +47,56 @@ impl Default for AuthenticatedUser {
 cfg_if! {
 if #[cfg(feature = "ssr")] {
     use async_trait::async_trait;
+    use foodie_core::{
+        ports::outgoing::authorization::{
+            query_user_by_email_port::QueryUserByEmailPort, query_user_port::QueryUserPort,
+        },
+        services::authorization::service::AuthorizationService,
+    };
 
-    /*
-    impl User {
-        pub async fn get(id: i64, pool: &dyn QueryUserPort) -> Option<Self> {
-            todo!()
-            // let sqluser = sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE id = ?")
-            //     .bind(id)
-            //     .fetch_one(pool)
-            //     .await
-            //     .ok()?;
-
-            // //lets just get all the tokens the user can use, we will only use the full permissions if modifing them.
-            // let sql_user_perms = sqlx::query_as::<_, SqlPermissionTokens>(
-            //     "SELECT token FROM user_permissions WHERE user_id = ?;",
-            // )
-            // .bind(id)
-            // .fetch_all(pool)
-            // .await
-            // .ok()?;
-
-            // Some(sqluser.into_user(Some(sql_user_perms)))
-        }
-
-        pub async fn get_from_username(name: String, pool: &SqlitePool) -> Option<Self> {
-            todo!()
-            // let sqluser = sqlx::query_as::<_, SqlUser>("SELECT * FROM users WHERE username = ?")
-            //     .bind(name)
-            //     .fetch_one(pool)
-            //     .await
-            //     .ok()?;
-
-            // //lets just get all the tokens the user can use, we will only use the full permissions if modifing them.
-            // let sql_user_perms = sqlx::query_as::<_, SqlPermissionTokens>(
-            //     "SELECT token FROM user_permissions WHERE user_id = ?;",
-            // )
-            // .bind(sqluser.id)
-            // .fetch_all(pool)
-            // .await
-            // .ok()?;
-
-            // Some(sqluser.into_user(Some(sql_user_perms)))
-        }
+    fn authorization_service() -> Result<AuthorizationService<UserSqliteDS>, ServerFnError> {
+        use_context::<AuthorizationService<UserSqliteDS>>()
+            .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
     }
-    */
-    #[derive(sqlx::FromRow, Clone)]
-    pub struct SqlPermissionTokens {
-        pub token: String,
+
+    impl AuthenticatedUser {
+        pub async fn get(id: String, pool: &dyn QueryUserPort) -> Option<Self> {
+            let user = pool.query_user(uuid::Uuid::parse_str(&id).unwrap_or_default()).await.ok()?;
+            Some(AuthenticatedUser::new(
+                user.id().to_string(),
+                user.name().to_string(),
+                user.email().to_string(),
+                user.role().to_string(),
+                user.verified()
+            ))
+        }
+
+        pub async fn get_from_username(name: String, pool: &dyn QueryUserByEmailPort) -> Option<Self> {
+            let user = pool.query_user_by_email(&name).await.ok()?;
+            Some(AuthenticatedUser::new(
+                user.id().to_string(),
+                user.name().to_string(),
+                user.email().to_string(),
+                user.role().to_string(),
+                user.verified()
+            ))
+        }
     }
 
     #[async_trait]
     impl Authentication<AuthenticatedUser, String, UserSqliteDS> for AuthenticatedUser {
         async fn load_user(userid: String, pool: Option<&UserSqliteDS>) -> Result<AuthenticatedUser, anyhow::Error> {
             let pool = pool.ok_or_else(|| anyhow::anyhow!("Cannot get user")).unwrap() as &dyn QueryUserPort;
-            pool.query_user(Uuid::parse_str(&userid)?).await.map(
-                |user| 
+            pool.query_user(uuid::Uuid::parse_str(&userid)?).await.map(
+                |user|
                     AuthenticatedUser::new(
-                        user.id().to_owned(),
+                        user.id().to_string(),
                         user.name().to_owned(),
                         user.email().to_owned(),
                         user.role().to_owned(),
-                        user.photo().to_owned(),
                         user.verified().to_owned(),
                     )
-            )
+            ).map_err(Into::into)
         }
 
         fn is_authenticated(&self) -> bool {
@@ -152,25 +140,24 @@ pub async fn login(
     password: String,
     remember: Option<String>,
 ) -> Result<(), ServerFnError> {
-    let pool = pool()?;
-    let auth = auth()?;
-
-    let user: User = User::get_from_username(username, &pool)
-        .await
-        .ok_or_else(|| {
-            ServerFnError::ServerError("User does not exist.".into())
-        })?;
-
-    match verify(password, &user.password)? {
-        true => {
-            auth.login_user(user.id);
-            auth.remember_user(remember.is_some());
+    use foodie_core::ports::incoming::authorization::login_command::{LoginCommand, Request};
+    let session = auth()?;
+    let service = &authorization_service()? as &dyn LoginCommand;
+    let token = service.login(Request::new(username, password)).await;
+    log!("login here");
+    match token {
+        Ok(token) => {
+            session.login_user(token.sub);
+            session.remember_user(remember.is_some());
             leptos_axum::redirect("/");
             Ok(())
         }
-        false => Err(ServerFnError::ServerError(
-            "Password does not match.".to_string(),
-        )),
+        Err(e) => {
+            log!("kind:{}", e);
+            Err(ServerFnError::ServerError(
+                "Error logging in user.".to_string(),
+            ))
+        }
     }
 }
 
@@ -181,46 +168,31 @@ pub async fn signup(
     password_confirmation: String,
     remember: Option<String>,
 ) -> Result<(), ServerFnError> {
-    let pool = pool()?;
-    let auth = auth()?;
-
-    if password != password_confirmation {
-        return Err(ServerFnError::ServerError(
-            "Passwords did not match.".to_string(),
-        ));
+    use foodie_core::ports::incoming::authorization::registration_command::{
+        RegistrationCommand, Request,
+    };
+    let session = auth()?;
+    let registration_service = &authorization_service()? as &dyn RegistrationCommand;
+    let token = registration_service
+        .register(Request::new(username.clone(), username, password))
+        .await;
+    match token {
+        Ok(token) => {
+            session.login_user(token.sub);
+            session.remember_user(remember.is_some());
+            leptos_axum::redirect("/");
+            Ok(())
+        }
+        Err(_) => Err(ServerFnError::ServerError(
+            "Error registering in user.".to_string(),
+        )),
     }
-
-    let password_hashed = hash(password, DEFAULT_COST).unwrap();
-
-    sqlx::query("INSERT INTO users (username, password) VALUES (?,?)")
-        .bind(username.clone())
-        .bind(password_hashed)
-        .execute(&pool)
-        .await?;
-
-    let user =
-        User::get_from_username(username, &pool)
-            .await
-            .ok_or_else(|| {
-                ServerFnError::ServerError(
-                    "Signup failed: User does not exist.".into(),
-                )
-            })?;
-
-    auth.login_user(user.id);
-    auth.remember_user(remember.is_some());
-
-    leptos_axum::redirect("/");
-
-    Ok(())
 }
 
 #[server(Logout, "/api")]
 pub async fn logout() -> Result<(), ServerFnError> {
-    let auth = auth()?;
-
-    auth.logout_user();
+    let session = auth()?;
+    session.logout_user();
     leptos_axum::redirect("/");
-
     Ok(())
 }

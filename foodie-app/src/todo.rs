@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Todo {
     id: u32,
-    user: Option<User>,
+    user: Option<AuthenticatedUser>,
     title: String,
     created_at: String,
     completed: bool,
@@ -32,17 +32,16 @@ if #[cfg(feature = "ssr")] {
     #[derive(sqlx::FromRow, Clone)]
     pub struct SqlTodo {
         id: u32,
-        user_id: i64,
         title: String,
         created_at: String,
         completed: bool,
     }
 
     impl SqlTodo {
-        pub async fn into_todo(self, pool: &SqlitePool) -> Todo {
+        pub async fn into_todo(self, _pool: &SqlitePool, user : Option<AuthenticatedUser>) -> Todo {
             Todo {
                 id: self.id,
-                user: User::get(self.user_id, pool).await,
+                user,
                 title: self.title,
                 created_at: self.created_at,
                 completed: self.completed,
@@ -57,10 +56,10 @@ pub async fn get_todos() -> Result<Vec<Todo>, ServerFnError> {
     use futures::TryStreamExt;
 
     let pool = pool()?;
+    let session = auth()?;
 
     let mut todos = Vec::new();
-    let mut rows =
-        sqlx::query_as::<_, SqlTodo>("SELECT * FROM todos").fetch(&pool);
+    let mut rows = sqlx::query_as::<_, SqlTodo>("SELECT * FROM todos").fetch(&pool);
 
     while let Some(row) = rows.try_next().await? {
         todos.push(row);
@@ -71,8 +70,9 @@ pub async fn get_todos() -> Result<Vec<Todo>, ServerFnError> {
 
     let mut converted_todos = Vec::with_capacity(todos.len());
 
+    let current_user = session.current_user;
     for t in todos {
-        let todo = t.into_todo(&pool).await;
+        let todo = t.into_todo(&pool, current_user.clone()).await;
         converted_todos.push(todo);
     }
 
@@ -88,19 +88,17 @@ pub async fn add_todo(title: String) -> Result<(), ServerFnError> {
 
     let id = match user {
         Some(user) => user.id,
-        None => -1,
+        None => "".to_string(),
     };
 
     // fake API delay
     std::thread::sleep(std::time::Duration::from_millis(1250));
 
-    match sqlx::query(
-        "INSERT INTO todos (title, user_id, completed) VALUES (?, ?, false)",
-    )
-    .bind(title)
-    .bind(id)
-    .execute(&pool)
-    .await
+    match sqlx::query("INSERT INTO todos (title, user_id, completed) VALUES (?, ?, false)")
+        .bind(title)
+        .bind(id)
+        .execute(&pool)
+        .await
     {
         Ok(_row) => Ok(()),
         Err(e) => Err(ServerFnError::ServerError(e.to_string())),
@@ -161,7 +159,7 @@ pub fn TodoApp() -> impl IntoView {
                         }.into_view(),
                         Ok(Some(user)) => view! {
                             <A href="/settings">"Settings"</A>", "
-                            <span>{format!("Logged in as: {} ({})", user.username, user.id)}</span>
+                            <span>{format!("Logged in as: {} ({})", user.name, user.id)}</span>
                         }.into_view()
                     })
                 }}
@@ -236,7 +234,7 @@ pub fn Todos() -> impl IntoView {
                                                                 {todo.created_at}
                                                                 " by "
                                                                 {
-                                                                    todo.user.unwrap_or_default().username
+                                                                    todo.user.unwrap_or_default().name
                                                                 }
                                                                 <ActionForm action=delete_todo>
                                                                     <input type="hidden" name="id" value={todo.id}/>
@@ -283,9 +281,7 @@ pub fn Todos() -> impl IntoView {
 }
 
 #[component]
-pub fn Login(
-    action: Action<Login, Result<(), ServerFnError>>,
-) -> impl IntoView {
+pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
 
         <ActionForm action=action>
@@ -311,9 +307,7 @@ pub fn Login(
 }
 
 #[component]
-pub fn Signup(
-    action: Action<Signup, Result<(), ServerFnError>>,
-) -> impl IntoView {
+pub fn Signup(action: Action<Signup, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
 
         <ActionForm action=action>
@@ -345,9 +339,7 @@ pub fn Signup(
 }
 
 #[component]
-pub fn Logout(
-    action: Action<Logout, Result<(), ServerFnError>>,
-) -> impl IntoView {
+pub fn Logout(action: Action<Logout, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
 
         <div id="loginbox">
