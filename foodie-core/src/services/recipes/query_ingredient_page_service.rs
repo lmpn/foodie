@@ -1,6 +1,4 @@
-use async_trait::async_trait;
-use tracing::error;
-
+use super::service::RecipeService;
 use crate::{
     domain::recipe::ingredient::Ingredient,
     ports::{
@@ -10,6 +8,8 @@ use crate::{
         outgoing::recipe::query_ingredients_port::{QueryIngredientsError, QueryIngredientsPort},
     },
 };
+use async_trait::async_trait;
+use tracing::error;
 
 impl From<QueryIngredientsError> for IngredientsPageQueryError {
     fn from(value: QueryIngredientsError) -> Self {
@@ -21,15 +21,8 @@ impl From<QueryIngredientsError> for IngredientsPageQueryError {
     }
 }
 
-pub struct QueryIngredientsPage<Storage>
-where
-    Storage: QueryIngredientsPort + Send + Sync,
-{
-    storage: Storage,
-}
-
 #[async_trait]
-impl<Storage> IngredientsPageQuery for QueryIngredientsPage<Storage>
+impl<Storage> IngredientsPageQuery for RecipeService<Storage>
 where
     Storage: QueryIngredientsPort + Send + Sync,
 {
@@ -44,14 +37,5 @@ where
             .query_ingredients(&recipe_uuid, count, offset)
             .await
             .map_err(|err| err.into())
-    }
-}
-
-impl<Storage> QueryIngredientsPage<Storage>
-where
-    Storage: QueryIngredientsPort + Send + Sync,
-{
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
     }
 }

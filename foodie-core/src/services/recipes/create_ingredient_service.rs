@@ -12,6 +12,8 @@ use crate::{
     },
 };
 
+use super::service::RecipeService;
+
 impl From<InsertIngredientError> for CreateIngredientCommandError {
     fn from(value: InsertIngredientError) -> Self {
         error!("{}", value);
@@ -25,15 +27,8 @@ impl From<InsertIngredientError> for CreateIngredientCommandError {
     }
 }
 
-pub struct CreateIngredient<Storage>
-where
-    Storage: InsertIngredientPort + Send + Sync,
-{
-    storage: Storage,
-}
-
 #[async_trait]
-impl<Storage> CreateIngredientCommand for CreateIngredient<Storage>
+impl<Storage> CreateIngredientCommand for RecipeService<Storage>
 where
     Storage: InsertIngredientPort + Send + Sync,
 {
@@ -54,14 +49,5 @@ where
             .await
             .map(|_| uuid)
             .map_err(|e| e.into())
-    }
-}
-
-impl<Storage> CreateIngredient<Storage>
-where
-    Storage: InsertIngredientPort + Send + Sync,
-{
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
     }
 }

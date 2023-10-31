@@ -6,6 +6,8 @@ use crate::ports::{
     outgoing::recipe::delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
 };
 
+use super::service::RecipeService;
+
 impl From<DeleteRecipeError> for DeleteRecipeCommandError {
     fn from(value: DeleteRecipeError) -> Self {
         error!("{}", value);
@@ -16,15 +18,8 @@ impl From<DeleteRecipeError> for DeleteRecipeCommandError {
     }
 }
 
-pub struct DeleteRecipe<Storage>
-where
-    Storage: DeleteRecipePort + Send + Sync,
-{
-    storage: Storage,
-}
-
 #[async_trait]
-impl<Storage> DeleteRecipeCommand for DeleteRecipe<Storage>
+impl<Storage> DeleteRecipeCommand for RecipeService<Storage>
 where
     Storage: DeleteRecipePort + Send + Sync,
 {
@@ -33,14 +28,5 @@ where
             .delete_recipe(uuid.to_string().as_str())
             .await
             .map_err(|e| e.into())
-    }
-}
-
-impl<Storage> DeleteRecipe<Storage>
-where
-    Storage: DeleteRecipePort + Send + Sync,
-{
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
     }
 }

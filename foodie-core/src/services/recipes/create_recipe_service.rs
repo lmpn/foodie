@@ -8,6 +8,8 @@ use crate::ports::{
     outgoing::recipe::insert_recipe_port::{InsertRecipeError, InsertRecipePort},
 };
 
+use super::service::RecipeService;
+
 impl From<InsertRecipeError> for CreateRecipeCommandError {
     fn from(value: InsertRecipeError) -> Self {
         error!("{}", value);
@@ -18,15 +20,8 @@ impl From<InsertRecipeError> for CreateRecipeCommandError {
     }
 }
 
-pub struct CreateRecipe<Storage>
-where
-    Storage: InsertRecipePort + Sync + Send,
-{
-    storage: Storage,
-}
-
 #[async_trait]
-impl<Storage> CreateRecipeCommand for CreateRecipe<Storage>
+impl<Storage> CreateRecipeCommand for RecipeService<Storage>
 where
     Storage: InsertRecipePort + Sync + Send,
 {
@@ -47,14 +42,5 @@ where
                 Err(CreateRecipeCommandError::RecipeAlreadyExists)
             }
         }
-    }
-}
-
-impl<Storage> CreateRecipe<Storage>
-where
-    Storage: InsertRecipePort + Sync + Send,
-{
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
     }
 }

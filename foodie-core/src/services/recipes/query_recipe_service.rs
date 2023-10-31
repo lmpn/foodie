@@ -1,3 +1,4 @@
+use super::service::RecipeService;
 use crate::{
     domain::recipe::Recipe,
     ports::{
@@ -18,15 +19,8 @@ impl From<QueryRecipeError> for RecipeQueryError {
     }
 }
 
-pub struct QueryRecipe<Storage>
-where
-    Storage: QueryRecipePort + Send + Sync,
-{
-    storage: Storage,
-}
-
 #[async_trait]
-impl<Storage> RecipeQuery for QueryRecipe<Storage>
+impl<Storage> RecipeQuery for RecipeService<Storage>
 where
     Storage: QueryRecipePort + Send + Sync,
 {
@@ -35,14 +29,5 @@ where
             .query_recipe(uuid)
             .await
             .map_err(|err| err.into())
-    }
-}
-
-impl<Storage> QueryRecipe<Storage>
-where
-    Storage: QueryRecipePort + Send + Sync,
-{
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
     }
 }

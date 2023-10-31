@@ -1,3 +1,4 @@
+use super::service::RecipeService;
 use crate::ports::{
     incoming::recipe::update_recipe_command::{
         Request, UpdateRecipeCommand, UpdateRecipeCommandError,
@@ -17,15 +18,8 @@ impl From<UpdateRecipeError> for UpdateRecipeCommandError {
     }
 }
 
-pub struct UpdateRecipe<Storage>
-where
-    Storage: UpdateRecipePort + Sync + Send,
-{
-    storage: Storage,
-}
-
 #[async_trait]
-impl<Storage> UpdateRecipeCommand for UpdateRecipe<Storage>
+impl<Storage> UpdateRecipeCommand for RecipeService<Storage>
 where
     Storage: UpdateRecipePort + Sync + Send,
 {
@@ -39,14 +33,5 @@ where
             )
             .await
             .map_err(|e| e.into())
-    }
-}
-
-impl<Storage> UpdateRecipe<Storage>
-where
-    Storage: UpdateRecipePort + Sync + Send,
-{
-    pub fn new(storage: Storage) -> Self {
-        Self { storage }
     }
 }
