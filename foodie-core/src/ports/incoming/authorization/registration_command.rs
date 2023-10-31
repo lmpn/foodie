@@ -1,4 +1,4 @@
-use crate::domain::authorization::filtered_user::FilteredUser;
+use crate::domain::authorization::token_claims::TokenClaims;
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 
@@ -32,7 +32,7 @@ impl Request {
 
 #[async_trait]
 pub trait RegistrationCommand {
-    async fn register(&self, request: Request) -> Result<FilteredUser, RegistrationCommandError>;
+    async fn register(&self, request: Request) -> Result<TokenClaims, RegistrationCommandError>;
 }
 
 #[derive(Debug, PartialEq)]

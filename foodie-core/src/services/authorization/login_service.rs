@@ -1,3 +1,4 @@
+use super::service::AuthorizationService;
 use crate::{
     domain::authorization::token_claims::TokenClaims,
     ports::{
@@ -9,7 +10,6 @@ use crate::{
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use async_trait::async_trait;
-use jsonwebtoken::{EncodingKey, Header};
 use tracing::error;
 
 impl From<QueryUserByEmailError> for LoginCommandError {
@@ -29,53 +29,19 @@ impl From<argon2::password_hash::Error> for LoginCommandError {
     }
 }
 
-impl From<jsonwebtoken::errors::Error> for LoginCommandError {
-    fn from(value: jsonwebtoken::errors::Error) -> Self {
-        error!("{:?}:{}", value.kind(), value);
-        LoginCommandError::TokenEncodingError
-    }
-}
-
-pub struct LoginService<Storage>
-where
-    Storage: QueryUserByEmailPort + Send + Sync,
-{
-    storage: Storage,
-    secret: String,
-    maxage: i64,
-}
-
-impl<Storage> LoginService<Storage>
-where
-    Storage: QueryUserByEmailPort + Send + Sync,
-{
-    pub fn new(storage: Storage, secret: String, maxage: i64) -> Self {
-        Self {
-            storage,
-            secret,
-            maxage,
-        }
-    }
-}
-
 #[async_trait]
-impl<Storage> LoginCommand for LoginService<Storage>
+impl<Storage> LoginCommand for AuthorizationService<Storage>
 where
     Storage: QueryUserByEmailPort + Send + Sync,
 {
-    async fn login(&self, request: Request) -> Result<(String, i64), LoginCommandError> {
+    async fn login(&self, request: Request) -> Result<TokenClaims, LoginCommandError> {
         let user = self.storage.query_user_by_email(request.email()).await?;
         PasswordHash::new(user.password()).map(|parsed_hash| {
             Argon2::default()
                 .verify_password(request.password().as_bytes(), &parsed_hash)
                 .map_or(false, |_| true)
         })?;
-        let token = TokenClaims::new(user.id().to_string(), self.maxage);
-        let token = jsonwebtoken::encode(
-            &Header::default(),
-            &token,
-            &EncodingKey::from_secret(self.secret.as_ref()),
-        )?;
-        Ok((token, self.maxage))
+        let token = TokenClaims::new(user.id().to_string(), self.maxage, "user".to_string());
+        Ok(token)
     }
 }

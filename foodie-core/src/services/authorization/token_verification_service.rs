@@ -11,6 +11,8 @@ use async_trait::async_trait;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use tracing::error;
 
+use super::service::AuthorizationService;
+
 impl From<QueryUserError> for TokenVerificationQueryError {
     fn from(value: QueryUserError) -> Self {
         error!("{}", value);
@@ -34,25 +36,8 @@ impl From<jsonwebtoken::errors::Error> for TokenVerificationQueryError {
     }
 }
 
-pub struct TokenVerificationService<Storage>
-where
-    Storage: QueryUserPort + Send + Sync,
-{
-    storage: Storage,
-    secret: String,
-}
-
-impl<Storage> TokenVerificationService<Storage>
-where
-    Storage: QueryUserPort + Send + Sync,
-{
-    pub fn new(storage: Storage, secret: String) -> Self {
-        Self { storage, secret }
-    }
-}
-
 #[async_trait]
-impl<Storage> TokenVerificationQuery for TokenVerificationService<Storage>
+impl<Storage> TokenVerificationQuery for AuthorizationService<Storage>
 where
     Storage: QueryUserPort + Send + Sync,
 {

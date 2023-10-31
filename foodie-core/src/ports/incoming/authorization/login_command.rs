@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use std::{error::Error, fmt::Display};
 
+use crate::domain::authorization::token_claims::TokenClaims;
+
 pub struct Request {
     email: String,
     password: String,
@@ -22,7 +24,7 @@ impl Request {
 
 #[async_trait]
 pub trait LoginCommand {
-    async fn login(&self, request: Request) -> Result<(String, i64), LoginCommandError>;
+    async fn login(&self, request: Request) -> Result<TokenClaims, LoginCommandError>;
 }
 
 #[derive(Debug, PartialEq)]
