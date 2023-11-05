@@ -1,7 +1,8 @@
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(feature = "ssr")] {
+if #[cfg(feature = "ssr")] {
+
 use leptos::LeptosOptions;
 use sqlx::SqlitePool;
 use axum::extract::FromRef;
@@ -17,5 +18,5 @@ pub struct AppState{
     pub routes: Vec<RouteListing>,
     pub authorization_service: AuthorizationService<UserSqliteDS>
 }
-    }
-}
+
+}}

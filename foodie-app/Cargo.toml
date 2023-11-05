@@ -20,7 +20,7 @@ leptos_router = { version = "0.5", features = ["nightly"] }
 log = "0.4.17"
 simple_logger = "4.0.0"
 serde = { version = "1.0.190", features = ["derive"] }
-axum = { version = "0.6.1", optional = true, features=["macros"] }
+axum = { version = "0.6.1", optional = true, features = ["macros"] }
 tower = { version = "0.4.13", optional = true }
 tower-http = { version = "0.4", features = ["fs"], optional = true }
 tokio = { version = "1.22.0", features = ["full"], optional = true }
@@ -42,6 +42,7 @@ async-trait = { version = "0.1.64", optional = true }
 foodie-storage = { path = "../foodie-storage", optional = true }
 foodie-core = { path = "../foodie-core", optional = true }
 uuid = { version = "1.5.0", features = ["v4"] }
+leptos_macro = { version = "0.5", optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
@@ -61,7 +62,7 @@ ssr = [
 	"leptos_router/ssr",
 	"dep:leptos_axum",
 	"foodie-storage",
-	"foodie-core"
+	"foodie-core",
 ]
 
 [package.metadata.cargo-all-features]

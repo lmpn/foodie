@@ -2688,6 +2688,7 @@ dependencies = [
  "http",
  "leptos",
  "leptos_axum",
+ "leptos_macro",
  "leptos_meta",
  "leptos_router",
  "log",

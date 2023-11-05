@@ -1,4 +1,3 @@
-use crate::{auth::*, error_template::ErrorTemplate};
 use cfg_if::cfg_if;
 use leptos::*;
 use leptos_meta::*;
@@ -13,10 +12,11 @@ pub struct Todo {
     created_at: String,
     completed: bool,
 }
-
+use crate::auth::{self, get_user, AuthenticatedUser};
+use crate::error_template::ErrorTemplate;
 cfg_if! {
 if #[cfg(feature = "ssr")] {
-
+    use crate::{auth::{AuthSession}};
     use sqlx::SqlitePool;
 
     pub fn pool() -> Result<SqlitePool, ServerFnError> {
@@ -118,10 +118,33 @@ pub async fn delete_todo(id: u16) -> Result<(), ServerFnError> {
 }
 
 #[component]
+pub fn NavBar(user: Result<Option<AuthenticatedUser>, ServerFnError>) -> impl IntoView {
+    match user {
+        Err(e) => view! {
+            <A href="/signup">"Signup"</A>", "
+            <A href="/login">"Login"</A>", "
+            <span>{format!("Login error: {}", e)}</span>
+        }
+        .into_view(),
+        Ok(None) => view! {
+            <A href="/signup">"Signup"</A>", "
+            <A href="/login">"Login"</A>", "
+            <span>"Logged out."</span>
+        }
+        .into_view(),
+        Ok(Some(user)) => view! {
+            <A href="/settings">"Settings"</A>", "
+            <span>{format!("Logged in as: {} ({})", user.name, user.id)}</span>
+        }
+        .into_view(),
+    }
+}
+
+#[component]
 pub fn TodoApp() -> impl IntoView {
-    let login = create_server_action::<Login>();
-    let logout = create_server_action::<Logout>();
-    let signup = create_server_action::<Signup>();
+    let login = create_server_action::<auth::Login>();
+    let logout = create_server_action::<auth::Logout>();
+    let signup = create_server_action::<auth::Signup>();
 
     let user = create_resource(
         move || {
@@ -133,6 +156,7 @@ pub fn TodoApp() -> impl IntoView {
         },
         move |_| get_user(),
     );
+
     provide_meta_context();
 
     view! {
@@ -141,46 +165,35 @@ pub fn TodoApp() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/session_auth_axum.css"/>
         <Router>
             <header>
-                <A href="/"><h1>"My Tasks"</h1></A>
-                <Transition
-                    fallback=move || view! {<span>"Loading..."</span>}
-                >
-                {move || {
-                    user.get().map(|user| match user {
-                        Err(e) => view! {
-                            <A href="/signup">"Signup"</A>", "
-                            <A href="/login">"Login"</A>", "
-                            <span>{format!("Login error: {}", e)}</span>
-                        }.into_view(),
-                        Ok(None) => view! {
-                            <A href="/signup">"Signup"</A>", "
-                            <A href="/login">"Login"</A>", "
-                            <span>"Logged out."</span>
-                        }.into_view(),
-                        Ok(Some(user)) => view! {
-                            <A href="/settings">"Settings"</A>", "
-                            <span>{format!("Logged in as: {} ({})", user.name, user.id)}</span>
-                        }.into_view()
-                    })
-                }}
+                <A href="/"><h1>"Foodie"</h1></A>
+                <Transition fallback=move || view! {<span>"Loading..."</span>} >
+                    {move || {
+                        user.get().map(|user|{
+                            view!{ <NavBar user=user/> }
+                        })
+                    }}
                 </Transition>
             </header>
             <hr/>
             <main>
                 <Routes>
-                    <Route path="" view=Todos/> //Route
-                    <Route path="signup" view=move || view! {
-                        <Signup action=signup/>
-                    }/>
-                    <Route path="login" view=move || view! {
-
-                        <Login action=login />
-                    }/>
-                    <Route path="settings" view=move || view! {
-
-                        <h1>"Settings"</h1>
-                        <Logout action=logout />
-                    }/>
+                <Route path="/" view=move || {
+                    view! {
+                        // only show the outlet if data have loaded
+                        <Show when=move || { if let Some(Ok(Some(_))) = user.get(){true}else{false}} fallback=|| view! { <p>"Loading"</p> }>
+                        <Outlet/>
+                        </Show>
+                    }
+                }>
+                    // nested child route
+                    <Route path="/" view=move || view! { }/>
+                </Route>
+                <Route path="signup" view=move || view! { < crate::forms::signup_form::SignupForm action=signup/> }/>
+                <Route path="login" view=move || view! { < crate::forms::login_form::LoginForm action=login /> }/>
+                <Route path="settings" view=move || view! {
+                    <h1>"Settings"</h1>
+                    <crate::forms::logout_form::LogoutForm action=logout />
+                }/>
                 </Routes>
             </main>
         </Router>
@@ -281,9 +294,8 @@ pub fn Todos() -> impl IntoView {
 }
 
 #[component]
-pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Login2(action: Action<auth::Login, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
-
         <ActionForm action=action>
             <h1>"Log In"</h1>
             <label>
@@ -307,9 +319,8 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
 }
 
 #[component]
-pub fn Signup(action: Action<Signup, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Signup(action: Action<auth::Signup, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
-
         <ActionForm action=action>
             <h1>"Sign Up"</h1>
             <label>
@@ -339,7 +350,7 @@ pub fn Signup(action: Action<Signup, Result<(), ServerFnError>>) -> impl IntoVie
 }
 
 #[component]
-pub fn Logout(action: Action<Logout, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Logout(action: Action<auth::Logout, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
 
         <div id="loginbox">

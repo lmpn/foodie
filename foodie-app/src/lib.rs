@@ -4,6 +4,7 @@ pub mod auth;
 pub mod error_template;
 pub mod errors;
 pub mod fallback;
+pub mod forms;
 pub mod state;
 pub mod todo;
 

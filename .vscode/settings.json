@@ -16,5 +16,11 @@
         "strings": true
     },
     "css.validate": false,
-    "rust-analyzer.cargo.features": "all"
+    "rust-analyzer.cargo.features": "all",
+    "rust-analyzer.procMacro.ignored": {
+        "leptos_macro": [
+            "component",
+            "server"
+        ],
+    }
 }

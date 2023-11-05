@@ -6,11 +6,18 @@ cfg_if! {
 if #[cfg(feature = "ssr")] {
     use leptos::{logging::log};
     use axum_session_auth::{SessionSqlitePool, Authentication, HasPermission};
-    use crate::todo::{ auth};
+    use crate::todo::{auth};
     use foodie_storage::authorization::user_sqlite_ds::UserSqliteDS;
     pub type AuthSession = axum_session_auth::AuthSession<AuthenticatedUser, String, SessionSqlitePool, UserSqliteDS>;
 }}
-
+/**
+ * Note: there is an hard dependency on the data model meaning that
+ * if the model changes this will have to change
+ *
+ * TODO: assess if this is ok because this is using SSR
+ * or if it should be broken with mapper
+ * or reuse the extend the foodie_core::ports::incoming::authorization module
+*/
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthenticatedUser {
     pub id: String,
@@ -48,8 +55,7 @@ cfg_if! {
 if #[cfg(feature = "ssr")] {
     use async_trait::async_trait;
     use foodie_core::{
-        ports::outgoing::authorization::{
-            query_user_by_email_port::QueryUserByEmailPort, query_user_port::QueryUserPort,
+        ports::outgoing::authorization::{ query_user_port::QueryUserPort,
         },
         services::authorization::service::AuthorizationService,
     };
@@ -57,30 +63,6 @@ if #[cfg(feature = "ssr")] {
     fn authorization_service() -> Result<AuthorizationService<UserSqliteDS>, ServerFnError> {
         use_context::<AuthorizationService<UserSqliteDS>>()
             .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
-    }
-
-    impl AuthenticatedUser {
-        pub async fn get(id: String, pool: &dyn QueryUserPort) -> Option<Self> {
-            let user = pool.query_user(uuid::Uuid::parse_str(&id).unwrap_or_default()).await.ok()?;
-            Some(AuthenticatedUser::new(
-                user.id().to_string(),
-                user.name().to_string(),
-                user.email().to_string(),
-                user.role().to_string(),
-                user.verified()
-            ))
-        }
-
-        pub async fn get_from_username(name: String, pool: &dyn QueryUserByEmailPort) -> Option<Self> {
-            let user = pool.query_user_by_email(&name).await.ok()?;
-            Some(AuthenticatedUser::new(
-                user.id().to_string(),
-                user.name().to_string(),
-                user.email().to_string(),
-                user.role().to_string(),
-                user.verified()
-            ))
-        }
     }
 
     #[async_trait]
@@ -114,8 +96,9 @@ if #[cfg(feature = "ssr")] {
 
     #[async_trait]
     impl HasPermission<UserSqliteDS> for AuthenticatedUser {
-        async fn has(&self, perm: &str, _: &Option<&UserSqliteDS>) -> bool {
+        async fn has(&self, _perm: &str, _: &Option<&UserSqliteDS>) -> bool {
             // self.permissions.contains(perm)
+            //TODO verify permissions
             true
         }
     }
@@ -144,7 +127,6 @@ pub async fn login(
     let session = auth()?;
     let service = &authorization_service()? as &dyn LoginCommand;
     let token = service.login(Request::new(username, password)).await;
-    log!("login here");
     match token {
         Ok(token) => {
             session.login_user(token.sub);
@@ -173,6 +155,11 @@ pub async fn signup(
     };
     let session = auth()?;
     let registration_service = &authorization_service()? as &dyn RegistrationCommand;
+    if password == password_confirmation {
+        return Err(ServerFnError::ServerError(
+            "Error passowrd mismatch.".to_string(),
+        ));
+    }
     let token = registration_service
         .register(Request::new(username.clone(), username, password))
         .await;

@@ -36,11 +36,14 @@ where
 {
     async fn login(&self, request: Request) -> Result<TokenClaims, LoginCommandError> {
         let user = self.storage.query_user_by_email(request.email()).await?;
-        PasswordHash::new(user.password()).map(|parsed_hash| {
+        let verification = PasswordHash::new(user.password()).map(|parsed_hash| {
             Argon2::default()
                 .verify_password(request.password().as_bytes(), &parsed_hash)
                 .map_or(false, |_| true)
         })?;
+        if !verification {
+            return Err(LoginCommandError::InvalidCredentials);
+        }
         let token = TokenClaims::new(user.id().to_string(), self.maxage, "user".to_string());
         Ok(token)
     }
