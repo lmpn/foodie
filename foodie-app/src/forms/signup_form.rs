@@ -1,9 +1,11 @@
-use crate::auth;
+use crate::api::authorization_api;
 use leptos::*;
 use leptos_router::*;
 
 #[component]
-pub fn SignupForm(action: Action<auth::Signup, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn SignupForm(
+    action: Action<authorization_api::Signup, Result<(), ServerFnError>>,
+) -> impl IntoView {
     view! {
         <ActionForm action=action>
             <h1>"Sign Up"</h1>

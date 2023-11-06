@@ -1,15 +1,19 @@
 use cfg_if::cfg_if;
 use leptos::*;
 use serde::{Deserialize, Serialize};
-
 cfg_if! {
 if #[cfg(feature = "ssr")] {
-    use leptos::{logging::log};
-    use axum_session_auth::{SessionSqlitePool, Authentication, HasPermission};
-    use crate::todo::{auth};
-    use foodie_storage::authorization::user_sqlite_ds::UserSqliteDS;
-    pub type AuthSession = axum_session_auth::AuthSession<AuthenticatedUser, String, SessionSqlitePool, UserSqliteDS>;
+use crate::server::{context_authorization_service, context_authorization_session_service};
+use async_trait::async_trait;
+use leptos::{logging::log};
+use axum_session_auth::{SessionSqlitePool, Authentication, HasPermission};
+use foodie_storage::authorization::user_sqlite_ds::UserSqliteDS;
+pub type AuthorizationSession = axum_session_auth::AuthSession<AuthenticatedUser, String, SessionSqlitePool, UserSqliteDS>;
+use foodie_core::{
+    ports::outgoing::authorization::{query_user_port::QueryUserPort},
+};
 }}
+
 /**
  * Note: there is an hard dependency on the data model meaning that
  * if the model changes this will have to change
@@ -53,18 +57,6 @@ impl Default for AuthenticatedUser {
 
 cfg_if! {
 if #[cfg(feature = "ssr")] {
-    use async_trait::async_trait;
-    use foodie_core::{
-        ports::outgoing::authorization::{ query_user_port::QueryUserPort,
-        },
-        services::authorization::service::AuthorizationService,
-    };
-
-    fn authorization_service() -> Result<AuthorizationService<UserSqliteDS>, ServerFnError> {
-        use_context::<AuthorizationService<UserSqliteDS>>()
-            .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
-    }
-
     #[async_trait]
     impl Authentication<AuthenticatedUser, String, UserSqliteDS> for AuthenticatedUser {
         async fn load_user(userid: String, pool: Option<&UserSqliteDS>) -> Result<AuthenticatedUser, anyhow::Error> {
@@ -105,16 +97,11 @@ if #[cfg(feature = "ssr")] {
 }
 }
 
-#[server(Foo, "/api")]
-pub async fn foo() -> Result<String, ServerFnError> {
-    Ok(String::from("Bar!"))
-}
-
 #[server(GetUser, "/api")]
 pub async fn get_user() -> Result<Option<AuthenticatedUser>, ServerFnError> {
-    let auth = auth()?;
+    let session = context_authorization_session_service()?;
 
-    Ok(auth.current_user)
+    Ok(session.current_user)
 }
 
 #[server(Login, "/api")]
@@ -124,8 +111,8 @@ pub async fn login(
     remember: Option<String>,
 ) -> Result<(), ServerFnError> {
     use foodie_core::ports::incoming::authorization::login_command::{LoginCommand, Request};
-    let session = auth()?;
-    let service = &authorization_service()? as &dyn LoginCommand;
+    let session = context_authorization_session_service()?;
+    let service = &context_authorization_service()? as &dyn LoginCommand;
     let token = service.login(Request::new(username, password)).await;
     match token {
         Ok(token) => {
@@ -153,11 +140,11 @@ pub async fn signup(
     use foodie_core::ports::incoming::authorization::registration_command::{
         RegistrationCommand, Request,
     };
-    let session = auth()?;
-    let registration_service = &authorization_service()? as &dyn RegistrationCommand;
+    let session = context_authorization_session_service()?;
+    let registration_service = &context_authorization_service()? as &dyn RegistrationCommand;
     if password == password_confirmation {
         return Err(ServerFnError::ServerError(
-            "Error passowrd mismatch.".to_string(),
+            "Error password mismatch.".to_string(),
         ));
     }
     let token = registration_service
@@ -178,7 +165,7 @@ pub async fn signup(
 
 #[server(Logout, "/api")]
 pub async fn logout() -> Result<(), ServerFnError> {
-    let session = auth()?;
+    let session = context_authorization_session_service()?;
     session.logout_user();
     leptos_axum::redirect("/");
     Ok(())

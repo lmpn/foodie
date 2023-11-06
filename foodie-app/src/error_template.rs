@@ -1,4 +1,4 @@
-use crate::errors::TodoAppError;
+use crate::errors::FoodieAppError;
 use cfg_if::cfg_if;
 use leptos::{Errors, *};
 #[cfg(feature = "ssr")]
@@ -21,10 +21,10 @@ pub fn ErrorTemplate(
 
     // Get Errors from Signal
     // Downcast lets us take a type that implements `std::error::Error`
-    let errors: Vec<TodoAppError> = errors
+    let errors: Vec<FoodieAppError> = errors
         .get()
         .into_iter()
-        .filter_map(|(_, v)| v.downcast_ref::<TodoAppError>().cloned())
+        .filter_map(|(_, v)| v.downcast_ref::<FoodieAppError>().cloned())
         .collect();
 
     // Only the response code for the first error is actually sent from the server

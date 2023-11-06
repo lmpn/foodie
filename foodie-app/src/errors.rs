@@ -2,20 +2,18 @@ use http::status::StatusCode;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
-pub enum TodoAppError {
+pub enum FoodieAppError {
     #[error("Not Found")]
     NotFound,
     #[error("Internal Server Error")]
     InternalServerError,
 }
 
-impl TodoAppError {
+impl FoodieAppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
-            TodoAppError::NotFound => StatusCode::NOT_FOUND,
-            TodoAppError::InternalServerError => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
+            FoodieAppError::NotFound => StatusCode::NOT_FOUND,
+            FoodieAppError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
