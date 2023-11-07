@@ -13,7 +13,7 @@ pub struct Todo {
 }
 use crate::{
     api::authorization_api::{self, get_user, AuthenticatedUser},
-    components::navbar::NavBar,
+    components::{grid::RecipeGrid, navbar::NavBar},
 };
 
 #[component]
@@ -62,7 +62,7 @@ pub fn Landing() -> impl IntoView {
                     }
                 }>
                     // nested child route
-                    <Route path="/" view=move || view! { <p>"Loaded"</p> }/>
+                    <Route path="/" view=RecipeGrid/>
                 </Route>
                 <Route path="signup" view=move || view! { < crate::forms::signup_form::SignupForm action=signup/> }/>
                 <Route path="login" view=move || view! { < crate::forms::login_form::LoginForm action=login /> }/>
