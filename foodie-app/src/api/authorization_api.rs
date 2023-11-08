@@ -142,7 +142,7 @@ pub async fn signup(
     };
     let session = context_authorization_session_service()?;
     let registration_service = &context_authorization_service()? as &dyn RegistrationCommand;
-    if password == password_confirmation {
+    if password != password_confirmation {
         return Err(ServerFnError::ServerError(
             "Error password mismatch.".to_string(),
         ));

@@ -7,24 +7,43 @@ pub struct Recipe {
     uuid: uuid::Uuid,
     name: String,
     image: String,
+    details: Option<RecipeDetails>,
+}
+#[derive(Debug, Clone)]
+pub struct RecipeDetails {
     method: String,
     ingredients: Vec<Ingredient>,
 }
 
-impl Recipe {
-    pub fn new(
-        id: uuid::Uuid,
-        name: String,
-        image: String,
-        method: String,
-        ingredients: Vec<Ingredient>,
-    ) -> Self {
+impl RecipeDetails {
+    pub fn new(method: String, ingredients: Vec<Ingredient>) -> Self {
         Self {
-            uuid: id,
-            name,
-            image,
             method,
             ingredients,
+        }
+    }
+
+    pub fn method(&self) -> &str {
+        self.method.as_ref()
+    }
+
+    pub fn ingredients(&self) -> &[Ingredient] {
+        self.ingredients.as_ref()
+    }
+}
+
+impl Recipe {
+    pub fn new(
+        uuid: uuid::Uuid,
+        name: String,
+        image: String,
+        details: Option<RecipeDetails>,
+    ) -> Self {
+        Self {
+            uuid,
+            name,
+            image,
+            details,
         }
     }
 
@@ -40,11 +59,7 @@ impl Recipe {
         self.image.as_ref()
     }
 
-    pub fn method(&self) -> &str {
-        self.method.as_ref()
-    }
-
-    pub fn ingredients(&self) -> &[Ingredient] {
-        self.ingredients.as_ref()
+    pub fn details(&self) -> Option<&RecipeDetails> {
+        self.details.as_ref()
     }
 }

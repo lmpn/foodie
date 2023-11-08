@@ -7,6 +7,7 @@ use foodie_core::{
         delete_recipe_port::{DeleteRecipeError, DeleteRecipePort},
         insert_recipe_port::{InsertRecipeError, InsertRecipePort},
         query_recipe_port::{QueryRecipeError, QueryRecipePort},
+        query_recipes_port::{QueryRecipesError, QueryRecipesPort},
         update_recipe_port::{UpdateRecipeError, UpdateRecipePort},
     },
 };
@@ -16,7 +17,6 @@ struct RecipeRecord {
     pub uuid: String,
     pub name: String,
     pub image: String,
-    pub method: String,
 }
 
 impl From<RecipeRecord> for Recipe {
@@ -25,13 +25,12 @@ impl From<RecipeRecord> for Recipe {
             uuid::Uuid::parse_str(&val.uuid).unwrap_or_default(),
             val.name,
             val.image,
-            val.method,
-            vec![],
+            None,
         )
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RecipeSqliteDS {
     pool: SqlitePool,
 }
@@ -77,7 +76,7 @@ impl QueryRecipePort for RecipeSqliteDS {
         let uuid = uuid.to_string();
         sqlx::query_as!(
             RecipeRecord,
-            r#"SELECT * FROM recipe WHERE recipe.uuid = ?"#,
+            r#"SELECT uuid, name, image FROM recipe WHERE recipe.uuid = ?"#,
             uuid
         )
         .fetch_one(&self.pool)
@@ -132,5 +131,22 @@ impl InsertRecipePort for RecipeSqliteDS {
             }
             _ => InsertRecipeError::InternalError,
         })
+    }
+}
+
+#[async_trait]
+impl QueryRecipesPort for RecipeSqliteDS {
+    async fn query_recipes(&self, count: u8, page: u8) -> Result<Vec<Recipe>, QueryRecipesError> {
+        let o = page * count;
+        sqlx::query_as!(
+            RecipeRecord,
+            r#"SELECT uuid, name, image FROM recipe LIMIT ? OFFSET ?"#,
+            count,
+            o
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|e| e.into_iter().map(Into::into).collect())
+        .map_err(|_| QueryRecipesError::InternalError)
     }
 }

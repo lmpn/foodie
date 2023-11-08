@@ -14,7 +14,6 @@ pub fn NavBar(user: Result<Option<AuthenticatedUser>, ServerFnError>) -> impl In
         Ok(None) => view! {
             <A href="/signup">"Signup"</A>", "
             <A href="/login">"Login"</A>", "
-            <span>"Logged out."</span>
         }
         .into_view(),
         Ok(Some(user)) => view! {

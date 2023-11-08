@@ -5,7 +5,6 @@ pub mod error_template;
 pub mod errors;
 pub mod forms;
 pub mod landing;
-pub mod state;
 cfg_if! {
 if #[cfg(feature = "hydrate")] {
 // Needs to be in lib.rs AFAIK because wasm-bindgen needs us to be compiling a lib. I may be wrong.
@@ -17,6 +16,7 @@ cfg_if! {
 if #[cfg(feature = "ssr")] {
 pub mod fallback;
 pub mod server;
+pub mod state;
 }}
 
 cfg_if! {

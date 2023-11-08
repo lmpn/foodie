@@ -36,9 +36,8 @@ pub fn Landing() -> impl IntoView {
     provide_meta_context();
 
     view! {
-
         <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
-        <Stylesheet id="leptos" href="/pkg/session_auth_axum.css"/>
+        <Stylesheet id="leptos" href="/pkg/foodie-app.css"/>
         <Router>
             <header>
                 <A href="/"><h1>"Foodie"</h1></A>
@@ -53,23 +52,22 @@ pub fn Landing() -> impl IntoView {
             <hr/>
             <main>
                 <Routes>
-                <Route path="/" view=move || {
-                    view! {
-                        // only show the outlet if data have loaded
-                        <Show when=move || { if let Some(Ok(Some(_))) = user.get(){true}else{false}} fallback=|| view! { <p>"Loading"</p> }>
-                        <Outlet/>
-                        </Show>
-                    }
-                }>
-                    // nested child route
-                    <Route path="/" view=RecipeGrid/>
-                </Route>
-                <Route path="signup" view=move || view! { < crate::forms::signup_form::SignupForm action=signup/> }/>
-                <Route path="login" view=move || view! { < crate::forms::login_form::LoginForm action=login /> }/>
-                <Route path="settings" view=move || view! {
-                    <h1>"Settings"</h1>
-                    <crate::forms::logout_form::LogoutForm action=logout />
-                }/>
+                    <Route path="/"
+                        view=move || {
+                            view! {
+                                <Transition fallback=move || view! {<span>"Loading..."</span>} >
+                                    <Show when=move || { if let Some(Ok(Some(_))) = user.get(){true}else{false}}>
+                                        <RecipeGrid/>
+                                    </Show>
+                                </Transition>
+                            }}
+                    />
+                    <Route path="signup" view=move || view! { < crate::forms::signup_form::SignupForm action=signup/> }/>
+                    <Route path="login" view=move || view! { < crate::forms::login_form::LoginForm action=login /> }/>
+                    <Route path="settings" view=move || view! {
+                        <h1>"Settings"</h1>
+                        <crate::forms::logout_form::LogoutForm action=logout />
+                    }/>
                 </Routes>
             </main>
         </Router>

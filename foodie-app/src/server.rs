@@ -1,4 +1,5 @@
 use crate::api::authorization_api::AuthenticatedUser;
+use crate::api::recipe_api::GetRecipes;
 use crate::fallback::file_and_error_handler;
 use crate::state::AppState;
 use crate::{api::authorization_api::AuthorizationSession, landing::Landing};
@@ -13,21 +14,29 @@ use axum::{
 use axum_session::{SessionConfig, SessionLayer, SessionStore};
 use axum_session_auth::{AuthConfig, AuthSessionLayer, SessionSqlitePool};
 use foodie_core::services::authorization::service::AuthorizationService;
+use foodie_core::services::recipes::service::RecipeService;
 use foodie_storage::authorization::user_sqlite_ds::UserSqliteDS;
+use foodie_storage::recipes::recipes_sqlite_ds::RecipeSqliteDS;
+use leptos::ServerFn;
 use leptos::{get_configuration, logging::log, provide_context, use_context, ServerFnError};
 use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
 use sqlx::sqlite::SqlitePoolOptions;
 
+pub(crate) fn context_recipe_service() -> Result<RecipeService<RecipeSqliteDS>, ServerFnError> {
+    use_context::<RecipeService<RecipeSqliteDS>>()
+        .ok_or_else(|| ServerFnError::ServerError("RecipeService missing.".into()))
+}
+
 pub(crate) fn context_authorization_service(
 ) -> Result<AuthorizationService<UserSqliteDS>, ServerFnError> {
     use_context::<AuthorizationService<UserSqliteDS>>()
-        .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
+        .ok_or_else(|| ServerFnError::ServerError("AuthorizationService missing.".into()))
 }
 
 pub(crate) fn context_authorization_session_service() -> Result<AuthorizationSession, ServerFnError>
 {
     use_context::<AuthorizationSession>()
-        .ok_or_else(|| ServerFnError::ServerError("Auth session missing.".into()))
+        .ok_or_else(|| ServerFnError::ServerError("Authorization session missing.".into()))
 }
 
 async fn server_fn_handler(
@@ -47,6 +56,7 @@ async fn server_fn_handler(
         move || {
             provide_context(auth_session.clone());
             provide_context(app_state.authorization_service.clone());
+            provide_context(app_state.recipe_service.clone());
         },
         request,
     )
@@ -63,6 +73,7 @@ async fn leptos_routes_handler(
         app_state.routes.clone(),
         move || {
             provide_context(auth_session.clone());
+            provide_context(app_state.recipe_service.clone());
         },
         Landing,
     );
@@ -89,6 +100,13 @@ pub async fn server_main() {
         .run(&pool)
         .await
         .expect("could not run SQLx migrations");
+    let user_ds = UserSqliteDS::new(pool.clone());
+    let recipe_ds = RecipeSqliteDS::new(pool.clone());
+    let authorization_service =
+        AuthorizationService::new(user_ds.clone(), "secret_jwt".to_string(), 6000);
+    let recipe_service = RecipeService::new(recipe_ds.clone());
+
+    GetRecipes::register_explicit().expect("GetRecipes not registered with success");
 
     // Setting this to None means we'll be using cargo-leptos and its env vars
     let conf = get_configuration(None).await.unwrap();
@@ -96,12 +114,11 @@ pub async fn server_main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(Landing);
 
-    let ds = UserSqliteDS::new(pool.clone());
-    let auth_service = AuthorizationService::new(ds.clone(), "secret_jwt".to_string(), 6000);
     let app_state = AppState {
         leptos_options,
         routes: routes.clone(),
-        authorization_service: auth_service,
+        authorization_service,
+        recipe_service,
     };
 
     // build our application with a route
@@ -114,7 +131,7 @@ pub async fn server_main() {
         .fallback(file_and_error_handler)
         .layer(
             AuthSessionLayer::<AuthenticatedUser, String, SessionSqlitePool, UserSqliteDS>::new(
-                Some(ds),
+                Some(user_ds),
             )
             .with_config(auth_config),
         )
