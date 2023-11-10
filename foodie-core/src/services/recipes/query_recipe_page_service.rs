@@ -21,16 +21,17 @@ const MAX_RECIPES: u8 = 20;
 #[async_trait]
 impl<Storage> RecipesPageQuery for RecipeService<Storage>
 where
-    Storage: QueryRecipesPort + Send + Sync,
+Storage: QueryRecipesPort + Send + Sync,
 {
     async fn recipes_page_query(
         &self,
         count: u8,
         offset: u8,
-    ) -> Result<Vec<Recipe>, RecipesPageQueryError> {
+        ) -> Result<Vec<Recipe>, RecipesPageQueryError> {
         if count > MAX_RECIPES {
             return Err(RecipesPageQueryError::PageTooBig);
         }
+
         self.storage
             .query_recipes(count, offset)
             .await

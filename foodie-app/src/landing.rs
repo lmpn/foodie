@@ -1,28 +1,25 @@
+use crate::{
+    api::authorization_api::{self, get_user},
+    client_app_state::ClientAppState,
+    components::{grid::RecipeGrid, header::Header, navbar::NavBar},
+};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Todo {
-    id: u32,
-    user: Option<AuthenticatedUser>,
-    title: String,
-    created_at: String,
-    completed: bool,
-}
-use crate::{
-    api::authorization_api::{self, get_user, AuthenticatedUser},
-    components::{grid::RecipeGrid, navbar::NavBar},
-};
 
 #[component]
 pub fn Landing() -> impl IntoView {
+    let state = create_rw_signal(ClientAppState::default());
+    provide_context(state);
+
     let login = create_server_action::<authorization_api::Login>();
     let logout = create_server_action::<authorization_api::Logout>();
     let signup = create_server_action::<authorization_api::Signup>();
 
-    let user = create_resource(
+    let user: Resource<
+        (usize, usize, usize),
+        Result<Option<authorization_api::AuthenticatedUser>, ServerFnError>,
+    > = create_resource(
         move || {
             (
                 login.version().get(),
@@ -30,8 +27,22 @@ pub fn Landing() -> impl IntoView {
                 logout.version().get(),
             )
         },
-        move |_| get_user(),
+        move |_| async move {
+            let user = get_user().await;
+            if let Ok(inner) = &user {
+                state.update(|value| value.user = inner.clone());
+            }
+            user
+        },
     );
+
+    let is_user_logged_in = move || {
+        if let Some(Ok(Some(_))) = user.get() {
+            true
+        } else {
+            false
+        }
+    };
 
     provide_meta_context();
 
@@ -39,24 +50,14 @@ pub fn Landing() -> impl IntoView {
         <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
         <Stylesheet id="leptos" href="/pkg/foodie-app.css"/>
         <Router>
-            <header>
-                <A href="/"><h1>"Foodie"</h1></A>
-                <Transition fallback=move || view! {<span>"Loading..."</span>} >
-                    {move || {
-                        user.get().map(|user|{
-                            view!{ <NavBar user=user/> }
-                        })
-                    }}
-                </Transition>
-            </header>
-            <hr/>
             <main>
+                <Header/>
                 <Routes>
                     <Route path="/"
                         view=move || {
                             view! {
                                 <Transition fallback=move || view! {<span>"Loading..."</span>} >
-                                    <Show when=move || { if let Some(Ok(Some(_))) = user.get(){true}else{false}}>
+                                    <Show when=move || {is_user_logged_in()}>
                                         <RecipeGrid/>
                                     </Show>
                                 </Transition>

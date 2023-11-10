@@ -10,5 +10,6 @@ else {
     pub fn main() {
         // This example cannot be built as a trunk standalone CSR-only app.
         // Only the server may directly connect to the database.
+        foodie_app::client::client_main().await
     }
 }}

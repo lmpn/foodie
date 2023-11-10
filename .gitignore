@@ -3,3 +3,5 @@
 /sql/*.db
 sql/*.db-shm
 sql/*.db-wal
+node_modules
+package*

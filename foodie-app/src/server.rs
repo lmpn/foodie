@@ -1,7 +1,7 @@
 use crate::api::authorization_api::AuthenticatedUser;
 use crate::api::recipe_api::GetRecipes;
 use crate::fallback::file_and_error_handler;
-use crate::state::AppState;
+use crate::server_app_state::ServerAppState;
 use crate::{api::authorization_api::AuthorizationSession, landing::Landing};
 use axum::{
     body::Body as AxumBody,
@@ -40,7 +40,7 @@ pub(crate) fn context_authorization_session_service() -> Result<AuthorizationSes
 }
 
 async fn server_fn_handler(
-    State(app_state): State<AppState>,
+    State(app_state): State<ServerAppState>,
     auth_session: AuthorizationSession,
     path: Path<String>,
     headers: HeaderMap,
@@ -65,7 +65,7 @@ async fn server_fn_handler(
 
 async fn leptos_routes_handler(
     auth_session: AuthorizationSession,
-    State(app_state): State<AppState>,
+    State(app_state): State<ServerAppState>,
     req: Request<AxumBody>,
 ) -> Response {
     let handler = leptos_axum::render_route_with_context(
@@ -114,7 +114,7 @@ pub async fn server_main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(Landing);
 
-    let app_state = AppState {
+    let app_state = ServerAppState {
         leptos_options,
         routes: routes.clone(),
         authorization_service,

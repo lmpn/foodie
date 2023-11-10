@@ -7,7 +7,7 @@ use leptos::*;
 #[component]
 fn RecipeCard(recipe: Recipe) -> impl IntoView {
     view! {
-        <div>
+        <div class="grid-item">
             <p>{recipe.name.clone()}</p>
             <img src={recipe.image}/>
         </div>
@@ -38,7 +38,7 @@ pub fn RecipeGrid() -> impl IntoView {
     view! {
         <Transition fallback=move || view! {<p>"Loading..."</p>}>
             <ErrorBoundary fallback=|errors|view!{<ErrorTemplate errors=errors/>}>
-                <div>
+                <div class="grid-container">
                     { move || render_recipes() }
                 </div>
             </ErrorBoundary>
