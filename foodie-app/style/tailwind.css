@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+w3-bar-item
 
 
 /* W3.CSS 4.15 December 2020 by Jan Egil and Borge Refsnes */
@@ -2002,15 +2002,10 @@ a {
 
 @layer components {
 	.navbar {
-		@apply w3-sidebar;
-		@apply w3-bar-block;
-		@apply w3-card;
-		@apply w3-top;
-		@apply w3-xlarge;
-		@apply w3-animate-left;
+		@apply w3-sidebar w3-bar-block w3-card w3-top w3-xlarge w3-animate-left;
 		display: none;
 		z-index: 2;
-		width: 40%;
-		min-width: 300px
+		width: 25%;
+		min-width: 150px
 	}
 }

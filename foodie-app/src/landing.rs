@@ -1,7 +1,7 @@
 use crate::{
     api::authorization_api::{self, get_user},
     client_app_state::ClientAppState,
-    components::{grid::RecipeGrid, header::Header, navbar::NavBar},
+    components::{grid::RecipeGrid, header::Header},
 };
 use leptos::*;
 use leptos_meta::*;
@@ -37,11 +37,7 @@ pub fn Landing() -> impl IntoView {
     );
 
     let is_user_logged_in = move || {
-        if let Some(Ok(Some(_))) = user.get() {
-            true
-        } else {
-            false
-        }
+        matches!(user.get(), Some(Ok(Some(_))))
     };
 
     provide_meta_context();

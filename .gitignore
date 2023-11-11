@@ -1,5 +1,5 @@
 /target
-
+*.html
 /sql/*.db
 sql/*.db-shm
 sql/*.db-wal

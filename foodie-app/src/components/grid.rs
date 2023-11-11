@@ -39,7 +39,7 @@ pub fn RecipeGrid() -> impl IntoView {
         <Transition fallback=move || view! {<p>"Loading..."</p>}>
             <ErrorBoundary fallback=|errors|view!{<ErrorTemplate errors=errors/>}>
                 <div class="grid-container">
-                    { move || render_recipes() }
+                    { render_recipes() }
                 </div>
             </ErrorBoundary>
         </Transition>

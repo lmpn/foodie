@@ -22,7 +22,7 @@ use foodie_core::{
  * or if it should be broken with mapper
  * or reuse the extend the foodie_core::ports::incoming::authorization module
 */
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthenticatedUser {
     pub id: String,
     pub name: String,
@@ -39,18 +39,6 @@ impl AuthenticatedUser {
             email,
             role,
             verified,
-        }
-    }
-}
-
-impl Default for AuthenticatedUser {
-    fn default() -> Self {
-        Self {
-            id: Default::default(),
-            name: Default::default(),
-            email: Default::default(),
-            role: Default::default(),
-            verified: Default::default(),
         }
     }
 }
