@@ -5,3 +5,5 @@ sql/*.db-shm
 sql/*.db-wal
 node_modules
 package*
+.DS_Store
+start-leptos-tauri
