@@ -10,7 +10,7 @@ pub fn ProperNavBar(toggle_menu: RwSignal<bool>) -> impl IntoView {
         |state| state.user.clone(),
         |state, value| state.user = value,
     );
-    let on_click = move |_|{
+    let on_click = move |_| {
         toggle_menu.update(|value| *value = !*value);
     };
     /*
@@ -40,13 +40,15 @@ pub fn ProperNavBar(toggle_menu: RwSignal<bool>) -> impl IntoView {
                 if !toggle_menu.get() {
                     return view!{
                         <nav class="navbar" >
-                        {options()}
-                        </nav>}.into_view();
+                            {move || options()}
+                        </nav>
+                 }   }.into_view();
                 }
                 view!{
                     <nav class="navbar" style="display:block">
-                    {options()}
-                    </nav>}.into_view()
+                        {move || options()}
+                    </nav>
+                }.into_view()
             }
         }
     }

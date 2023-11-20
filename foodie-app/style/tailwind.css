@@ -2004,8 +2004,9 @@ a {
 	.navbar {
 		@apply w3-sidebar w3-bar-block w3-card w3-top w3-xlarge w3-animate-left;
 		display: none;
-		z-index: 2;
+		z-index: 20;
 		width: 25%;
-		min-width: 150px
+		min-width: 150px;
 	}
 }
+		z-index: 2;

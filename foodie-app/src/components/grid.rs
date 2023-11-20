@@ -2,27 +2,42 @@ use crate::{
     api::recipe_api::{get_recipes, Recipe},
     error_template::ErrorTemplate,
 };
-use itertools::Itertools;
 use leptos::*;
+use leptos_router::A;
+use itertools::Itertools;
 
+#[derive(Clone, PartialEq)]
 struct Pagination {
-    pub page_size: u64,
-    pub page_number: u64,
+    pub page_size: u8,
+    pub page_number: u8,
 }
 
 impl Default for Pagination {
     fn default() -> Self {
-        Pagination { page_size: 16, page_number: 0 }
+        Pagination { page_size: 1, page_number: 0 }
+    }
+}
+
+impl Pagination{
+    pub fn next_page(& mut self){
+        self.page_number = self.page_number.saturating_add(1);
+    }
+
+    pub fn previous_page(& mut self){
+        self.page_number = self.page_number.saturating_sub(1);
     }
 }
 
 #[component]
 fn RecipeCard(recipe: Recipe) -> impl IntoView {
+    let details = format!("/{}", recipe.uuid);
     view! {
-        <div class="w3-quarter">
+        <A href=details>
+            <div class="w3-quarter">
             <img src={recipe.image} style="width:100%"/>
             <h3>{recipe.name.clone()}</h3>
-        </div>
+            </div>
+        </A>
     }
 }
 
@@ -30,10 +45,18 @@ fn RecipeCard(recipe: Recipe) -> impl IntoView {
 pub fn RecipeGrid() -> impl IntoView {
     //TODO pass via argument
     //let (count, set_count) = create_signal(5);
-    //let (page, set_page) = create_signal(0);
-    let count = 5;
-    let page = 0;
-    let recipes = create_resource(move || (), move |_| get_recipes(count, page));
+    let (pagination, set_page) = create_signal(Pagination::default());
+    let recipes = create_resource(
+        move || (pagination.get()), 
+        move |pagination| get_recipes(pagination.page_size, 
+                                      pagination.page_number)
+    );
+    let next_page = move || {
+        set_page.update(|value|{value.next_page();});
+    };
+    let previous_page = move || {
+        set_page.update(|value|{value.previous_page();});
+    };
     let render_recipes = move || {
         recipes
             .get()
@@ -50,30 +73,39 @@ pub fn RecipeGrid() -> impl IntoView {
                             })
                             .collect_view();
                         view! {
-                            <div class="w3-row-padding w3-padding-16 w3-center" id="food">
+                            <div class="w3-row-padding w3-padding-16 w3-center">
                                 {recipe_row}
                             </div>
                         }
                     })
                     .collect_view(),
                 Err(error) => {
-                    view! { <pre class="error">"Server Error: " {error.to_string()}</pre>}
-                        .into_view()
+                    view! { 
+                        <pre class="error">
+                            "Server Error: " {error.to_string()}
+                        </pre>
+                    }.into_view()
                 }
             })
             .unwrap_or_default()
     };
     view! {
         <Transition fallback=move || view! {<p>"Loading..."</p>}>
-            <ErrorBoundary fallback=|errors|view!{<ErrorTemplate errors=errors/>}>
-                <div class="grid-container">
+            <ErrorBoundary 
+                fallback=|errors|view!{<ErrorTemplate errors=errors/>}
+            >
+                <div class="w3-main w3-content w3-padding" 
+                     style="max-width:1200px;margin-top:50px">
                     { move || render_recipes() }
                 </div>
 
+                <hr/>
                 <div class="w3-center w3-padding-32">
                     <div class="w3-bar">
-                        <a href="#" class="w3-bar-item w3-button w3-hover-black">"<"</a>
-                        <a href="#" class="w3-bar-item w3-button w3-hover-black">">"</a>
+                        <button class="w3-bar-item w3-button w3-hover-black" 
+                            on:click=move|_|{previous_page();}>"<"</button>
+                        <button class="w3-bar-item w3-button w3-hover-black" 
+                            on:click=move|_|{next_page();}>">"</button>
                     </div>
                 </div>
             </ErrorBoundary>
